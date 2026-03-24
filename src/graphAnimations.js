@@ -241,6 +241,8 @@ export function revealGraf(el) {
   const $lineH = $el.find('[id^="line-h"]');
   const $lineV = $el.find('[id^="line-v"]');
   const $lineGroups = $el.find('[id^="line-group"]');
+  const $lineTop = $el.find('[id^="line-top"]');
+  const $lineBottom = $el.find('[id^="line-bottom"]');
   const $tooltip = $el.find('[data-anim="tooltip"]');
   const $label = $el.find('[data-anim="label"]');
   const $graphTable = $el.find('[data-anim="graph-table"]');
@@ -263,6 +265,8 @@ export function revealGraf(el) {
   if ($cursor.length) gsap.set($cursor, { autoAlpha: 0 });
   if ($lineH.length) gsap.set($lineH, { scaleX: 0, transformOrigin: 'left center' });
   if ($lineV.length) gsap.set($lineV, { scaleY: 0, transformOrigin: 'center bottom' });
+  if ($lineTop.length) gsap.set($lineTop, { scaleY: 0, transformOrigin: 'center top' });
+  if ($lineBottom.length) gsap.set($lineBottom, { scaleY: 0, transformOrigin: 'center bottom' });
   if ($dot.length) gsap.set($dot, { x: '10em', y: '10em' });
   if ($tooltip.length) gsap.set($tooltip, { scale: 0.5, transformOrigin: 'left', autoAlpha: 0 });
   if ($label.length) gsap.set($label, { scale: 0.5, transformOrigin: 'center', autoAlpha: 0 });
@@ -346,9 +350,15 @@ export function revealGraf(el) {
     );
   if ($lineGroups.length) {
     // Grouped bars: right to left, each group's bars grow simultaneously
+    // Supports line-v (bottom), line-top (top→down), line-bottom (bottom→up)
     const groups = [...$lineGroups];
     groups.forEach((group, i) => {
-      const bars = $(group).find('[id^="line-v"]').toArray();
+      const bars = [
+        ...$(group).find('[id^="line-v"]').toArray(),
+        ...$(group).find('[id^="line-top"]').toArray(),
+        ...$(group).find('[id^="line-bottom"]').toArray(),
+      ];
+      if (!bars.length) return;
       tl.to(bars, { scaleY: 1, duration: 0.5, ease: 'power2.out' }, i === 0 ? '-=0.8' : '>-=0.3');
     });
   } else if ($lineV.length) {

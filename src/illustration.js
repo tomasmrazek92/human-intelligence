@@ -67,6 +67,15 @@ export function runSecureMCP() {
       stdLabel: { duration: 0.2 },
     },
 
+    // Section 8 — Dotted connector lines (DrawSVG stroke reveal)
+    dottedLines: {
+      duration: 0.8,
+      stagger: 0.15,
+      ease: 'power2.inOut',
+      gap: '-=0.4',
+      repeatDelay: 0.8,
+    },
+
     // ─── Float animations (post-reveal) ──────────────────────────────────────
     // y/ease on the section = default for all layers. Override per-layer by adding y on that layer.
     floats: {
@@ -382,6 +391,46 @@ export function runSecureMCP() {
       return tl;
     };
 
+    // Section 8: Dotted connector lines
+    const dottedLinesTimeline = () => {
+      const c = CONFIG.dottedLines;
+      const ids = ['#dotted-line', '#dotted-line_2', '#dotted-line_3', '#dotted-line_4'];
+      const tl = gsap.timeline();
+
+      const parents = ids.map((id) => document.querySelector(id)).filter(Boolean);
+      const allPaths = parents.flatMap((el) =>
+        el.tagName.toLowerCase() === 'path' ? [el] : [...el.querySelectorAll('path')]
+      );
+
+      if (!allPaths.length) return tl;
+
+      // Preserve dash pattern — offset by full path length now (elements still hidden)
+      allPaths.forEach((path) => {
+        gsap.set(path, { strokeDashoffset: path.getTotalLength() });
+      });
+
+      tl.set(parents, { autoAlpha: 1 }).to(allPaths, {
+        strokeDashoffset: 0,
+        duration: c.duration,
+        stagger: c.stagger,
+        ease: c.ease,
+        onComplete() {
+          const loopTl = gsap.timeline({ repeat: -1, repeatDelay: c.repeatDelay });
+          allPaths.forEach((path, i) => {
+            loopTl.fromTo(
+              path,
+              { strokeDashoffset: path.getTotalLength() },
+              { strokeDashoffset: 0, duration: c.duration, ease: c.ease },
+              i * c.stagger
+            );
+          });
+          floatTweens.push(loopTl);
+        },
+      });
+
+      return tl;
+    };
+
     const floatTweens = [];
 
     const init = () => {
@@ -405,7 +454,8 @@ export function runSecureMCP() {
           .add(governanceTimeline(), CONFIG.sectionGap)
           .add(humanIntelligenceTimeline(), CONFIG.sectionGap)
           .add(highlightTimeline(), CONFIG.highlight.gap)
-          .add(mcpAgentBuildersTimeline(), CONFIG.sectionGap);
+          .add(mcpAgentBuildersTimeline(), CONFIG.sectionGap)
+          .add(dottedLinesTimeline(), CONFIG.dottedLines.gap);
 
         new IntersectionObserver(([entry]) => {
           floatTweens.forEach((t) => (entry.isIntersecting ? t.play() : t.pause()));

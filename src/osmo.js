@@ -14,7 +14,7 @@ export function initGlobalParallax() {
       const ctx = gsap.context(() => {
         document.querySelectorAll('[data-parallax="trigger"]').forEach((trigger) => {
           // Check if this trigger has to be disabled on smaller breakpoints
-          const disable = trigger.getAttribute('data-parallax-disable');
+          const disable = trigger.getAttribute('data-parallax-disable') || 'tablet';
           if (
             (disable === 'mobile' && isMobile) ||
             (disable === 'mobileLandscape' && isMobileLandscape) ||
@@ -299,19 +299,21 @@ export function initContentRevealScroll() {
               // Nested children use nested stagger (ms → sec); fallback to group stagger
               const nestedMs = parseFloat(slot.nestedEl.getAttribute('data-stagger'));
               const nestedStaggerSec = isNaN(nestedMs) ? groupStaggerSec : nestedMs / 1000;
-              Array.from(slot.nestedEl.children).filter((el) => !el.hasAttribute('data-reveal-skip')).forEach((nestedChild, nestedIndex) => {
-                tl.to(
-                  nestedChild,
-                  {
-                    y: 0,
-                    autoAlpha: 1,
-                    duration: animDuration,
-                    ease: animEase,
-                    onComplete: () => gsap.set(nestedChild, { clearProps: 'all' }),
-                  },
-                  slotTime + nestedIndex * nestedStaggerSec
-                );
-              });
+              Array.from(slot.nestedEl.children)
+                .filter((el) => !el.hasAttribute('data-reveal-skip'))
+                .forEach((nestedChild, nestedIndex) => {
+                  tl.to(
+                    nestedChild,
+                    {
+                      y: 0,
+                      autoAlpha: 1,
+                      duration: animDuration,
+                      ease: animEase,
+                      onComplete: () => gsap.set(nestedChild, { clearProps: 'all' }),
+                    },
+                    slotTime + nestedIndex * nestedStaggerSec
+                  );
+                });
             }
           });
         },
