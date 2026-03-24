@@ -3,7 +3,6 @@ import { runPattern } from './pattern';
 import { initGlobalParallax } from './osmo';
 import { initScrambleText } from './osmo';
 import { initContentRevealScroll } from './osmo';
-import { initGraphsAnimation } from './graphAnimations';
 import { initHighlightMarkerTextReveal } from './osmo';
 import { initPlatformDots } from './platform';
 
@@ -11,7 +10,6 @@ gsap.registerPlugin(SplitText, ScrollTrigger, DrawSVGPlugin);
 
 window.addEventListener('load', () => {
   requestAnimationFrame(() => {
-    initGraphsAnimation();
     initPlatformDots();
     runSecureMCP();
 

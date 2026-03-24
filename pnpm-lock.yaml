@@ -12,7 +12,7 @@ importers:
         specifier: ^0.39.0
         version: 0.39.2
       gsap:
-        specifier: ^3.11.5
+        specifier: ^3.12.5
         version: 3.12.5
       luxon:
         specifier: ^3.3.0
