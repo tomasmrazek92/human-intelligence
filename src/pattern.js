@@ -16,6 +16,15 @@ import { SVG_PATTERNS } from './svgs';
  *   - base paths: subtle parallax shift following mouse position
  */
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Force the root <svg> tag's width/height to 100% regardless of what's in the file. */
+function normalizeSvgSize(svgString) {
+  return svgString
+    .replace(/(<svg\b[^>]*?)\s+width="[^"]*"/i, '$1 width="100%"')
+    .replace(/(<svg\b[^>]*?)\s+height="[^"]*"/i, '$1 height="100%"');
+}
+
 // ─── Shared state ────────────────────────────────────────────────────────────
 let platformVisible = false;
 const pulseTls = [];
@@ -145,7 +154,7 @@ function startHighlightPulse(highlightPaths, wrapperEl) {
 }
 
 /**
- * Build the pulse-in timeline for a wrapper containing two SVGs.
+ * Build the pulse-in timeline for a wrapper containing base + highlight SVGs.
  * Queries paths from each SVG independently.
  */
 function buildPulseIn(wrapperEl, { paused = false } = {}) {
@@ -185,12 +194,74 @@ function buildPulseIn(wrapperEl, { paused = false } = {}) {
   return tl;
 }
 
+/**
+ * Build the reveal timeline for a wrapper containing base + apps SVGs.
+ * Sequence:
+ *   1. Base paths pulse in (center-out, same as buildPulseIn)
+ *   2. App groups scale in with stagger
+ *   3. Arrow draws in via clip-path top → bottom (matches arrow flow direction)
+ */
+function buildAppsIn(wrapperEl, { paused = false } = {}) {
+  const baseSvg = wrapperEl.querySelector('[data-svg="base"]');
+  const appsSvg = wrapperEl.querySelector('[data-svg="apps"]');
+  if (!baseSvg || !appsSvg) return;
+
+  const basePaths = sortFromCenter(baseSvg.querySelectorAll('path'), baseSvg);
+  const appGroups = [...appsSvg.querySelectorAll('[id^="app"]')].filter(
+    (el) => el.id !== 'app-flow'
+  );
+  const arrow = appsSvg.querySelector('#arrow');
+
+  gsap.set(basePaths, { opacity: 0, scale: 0, transformOrigin: 'center center' });
+  gsap.set(appGroups, { opacity: 0, scale: 0.85, transformOrigin: 'center center' });
+  if (arrow) gsap.set(arrow, { clipPath: 'inset(0 0 100% 0)' });
+
+  const staggerConfig = { amount: DURATION - ANIM_DUR, ease: 'sine.out' };
+  const tl = gsap.timeline({ paused });
+
+  // 1. Base reveal — center-out
+  tl.fromTo(
+    basePaths,
+    { opacity: 0, scale: 0, transformOrigin: 'center center' },
+    { opacity: 1, scale: 1, duration: ANIM_DUR, ease: 'back.out(1.4)', stagger: staggerConfig }
+  );
+
+  // 2. App groups scale in
+  tl.to(
+    appGroups,
+    {
+      opacity: 1,
+      scale: 1,
+      duration: 0.4,
+      stagger: 0.2,
+      ease: 'back.out(1.4)',
+      transformOrigin: 'center center',
+    },
+    DURATION - HIGHLIGHT_OVERLAP
+  );
+
+  // 3. Arrow clip-path reveal: top → bottom (source to tip)
+  if (arrow) {
+    tl.to(arrow, { clipPath: 'inset(0 0 0% 0)', duration: 0.7, ease: 'power2.inOut' }, '>-0.1');
+  }
+
+  tl.call(() => {
+    gsap.set(basePaths, { clearProps: 'all' });
+    gsap.set(appGroups, { clearProps: 'all' });
+    if (arrow) gsap.set(arrow, { clearProps: 'clipPath' });
+  });
+
+  return tl;
+}
+
 function initPulse(wrapperEl) {
-  buildPulseIn(wrapperEl);
+  const builder = wrapperEl.querySelector('[data-svg="apps"]') ? buildAppsIn : buildPulseIn;
+  builder(wrapperEl);
 }
 
 function initScroll(wrapperEl) {
-  const tl = buildPulseIn(wrapperEl, { paused: true });
+  const builder = wrapperEl.querySelector('[data-svg="apps"]') ? buildAppsIn : buildPulseIn;
+  const tl = builder(wrapperEl, { paused: true });
 
   ScrollTrigger.create({
     trigger: wrapperEl,
@@ -222,9 +293,13 @@ export function runPattern() {
         .join(', ');
       const maskStyle = `mask-image: ${masks.join(', ')}; mask-composite: ${composites || 'add'};`;
 
+      const secondSvg = entry.apps
+        ? `<svg data-svg="apps"       style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${normalizeSvgSize(entry.apps)}</svg>`
+        : `<svg data-svg="highlight"  style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${normalizeSvgSize(entry.highlight)}</svg>`;
+
       $(this).html(`
-        <svg data-svg="base"      style="position:absolute;inset:0;width:100%;height:100%;z-index:1;${maskStyle}">${entry.base}</svg>
-        <svg data-svg="highlight" style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${entry.highlight}</svg>
+        <svg data-svg="base" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;${maskStyle}">${normalizeSvgSize(entry.base)}</svg>
+        ${secondSvg}
       `);
     }
 
