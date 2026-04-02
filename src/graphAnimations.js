@@ -271,22 +271,6 @@ export function revealGraf(el) {
   if ($tooltip.length) gsap.set($tooltip, { scale: 0.5, transformOrigin: 'left', autoAlpha: 0 });
   if ($label.length) gsap.set($label, { scale: 0.5, transformOrigin: 'center', autoAlpha: 0 });
 
-  if ($mask.length) {
-    // Hide the whole container immediately via native DOM — faster than GSAP and
-    // prevents the browser painting the paths visible before JS finishes setting up.
-    $mask.each(function () { this.style.visibility = 'hidden'; });
-
-    $maskPaths.each(function () {
-      // Prefer the inline stroke-dasharray already set by the SVG export —
-      // getTotalLength() can return scaled pixel values on mobile, causing a mismatch.
-      const length = parseFloat(this.style.strokeDasharray) || this.getTotalLength();
-      const isRightToLeft = this.getPointAtLength(0).x > this.getPointAtLength(length).x;
-      gsap.set(this, {
-        strokeDasharray: length,
-        strokeDashoffset: isRightToLeft ? -length : length,
-      });
-    });
-  }
 
   // Bar chart base reveal — individual children, no parent fade
   if (grid) tl.to(grid, { autoAlpha: 1, duration: 0.4, ease: 'power2.out' }, 0);
@@ -312,11 +296,17 @@ export function revealGraf(el) {
   }
 
   if ($maskPaths.length) {
-    tl.call(() => $mask.each(function () { this.style.visibility = ''; }), [], '-=0.2');
-    tl.to(
+    // fromTo with immediateRender: true (GSAP default) applies the FROM state the
+    // moment the tween is added — no separate gsap.set needed, and GSAP always knows
+    // the explicit start value so lazy-capture issues on mobile can't occur.
+    tl.fromTo(
       $maskPaths,
+      {
+        strokeDasharray: (i, el) => parseFloat(el.style.strokeDasharray) || el.getTotalLength(),
+        strokeDashoffset: (i, el) => parseFloat(el.style.strokeDasharray) || el.getTotalLength(),
+      },
       { strokeDashoffset: 0, duration: 1.5, stagger: 0.2, ease: 'power2.out' },
-      '<'
+      '-=0.2'
     );
   }
 
