@@ -303,16 +303,7 @@ export function revealGraf(el) {
       $maskPaths,
       {
         strokeDasharray: (i, el) => parseFloat(el.style.strokeDasharray) || el.getTotalLength(),
-        strokeDashoffset: (i, el) => {
-          const len = parseFloat(el.style.strokeDasharray) || el.getTotalLength();
-          // Detect direction from the path `d` attribute — no getPointAtLength() needed,
-          // so this works reliably on mobile before the SVG has been laid out.
-          const d = el.getAttribute('d') || '';
-          const startX = parseFloat(d.match(/^M\s*([\d.-]+)/)?.[1] ?? '0');
-          const lastH = [...d.matchAll(/H\s*([\d.-]+)/g)].pop();
-          const endX = lastH ? parseFloat(lastH[1]) : startX;
-          return startX > endX ? -len : len;
-        },
+        strokeDashoffset: (i, el) => parseFloat(el.style.strokeDasharray) || el.getTotalLength(),
       },
       { strokeDashoffset: 0, duration: 1.5, stagger: 0.2, ease: 'power2.out' },
       '-=0.2'
