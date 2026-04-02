@@ -16,7 +16,7 @@ export function initGlobalParallax() {
           // Check if this trigger has to be disabled on smaller breakpoints
           const disable = trigger.getAttribute('data-parallax-disable') || 'tablet';
           if (
-            (disable === 'mobile' && isMobile) ||
+            (disable === 'mobile' && isMobile) || 
             (disable === 'mobileLandscape' && isMobileLandscape) ||
             (disable === 'tablet' && isTablet)
           ) {

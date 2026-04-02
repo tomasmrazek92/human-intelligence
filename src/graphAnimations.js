@@ -271,9 +271,15 @@ export function revealGraf(el) {
   if ($tooltip.length) gsap.set($tooltip, { scale: 0.5, transformOrigin: 'left', autoAlpha: 0 });
   if ($label.length) gsap.set($label, { scale: 0.5, transformOrigin: 'center', autoAlpha: 0 });
 
-  if ($maskPaths.length) {
+  if ($mask.length) {
+    // Hide the whole container immediately via native DOM — faster than GSAP and
+    // prevents the browser painting the paths visible before JS finishes setting up.
+    $mask.each(function () { this.style.visibility = 'hidden'; });
+
     $maskPaths.each(function () {
-      const length = this.getTotalLength();
+      // Prefer the inline stroke-dasharray already set by the SVG export —
+      // getTotalLength() can return scaled pixel values on mobile, causing a mismatch.
+      const length = parseFloat(this.style.strokeDasharray) || this.getTotalLength();
       const isRightToLeft = this.getPointAtLength(0).x > this.getPointAtLength(length).x;
       gsap.set(this, {
         strokeDasharray: length,
@@ -306,10 +312,11 @@ export function revealGraf(el) {
   }
 
   if ($maskPaths.length) {
+    tl.call(() => $mask.each(function () { this.style.visibility = ''; }), [], '-=0.2');
     tl.to(
       $maskPaths,
       { strokeDashoffset: 0, duration: 1.5, stagger: 0.2, ease: 'power2.out' },
-      '-=0.2'
+      '<'
     );
   }
 
