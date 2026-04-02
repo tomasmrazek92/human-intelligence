@@ -305,8 +305,13 @@ export function revealGraf(el) {
         strokeDasharray: (i, el) => parseFloat(el.style.strokeDasharray) || el.getTotalLength(),
         strokeDashoffset: (i, el) => {
           const len = parseFloat(el.style.strokeDasharray) || el.getTotalLength();
-          // Negative offset for right-starting paths so all lines reveal left → right visually
-          return el.getPointAtLength(0).x > el.getPointAtLength(len).x ? -len : len;
+          // Detect direction from the path `d` attribute — no getPointAtLength() needed,
+          // so this works reliably on mobile before the SVG has been laid out.
+          const d = el.getAttribute('d') || '';
+          const startX = parseFloat(d.match(/^M\s*([\d.-]+)/)?.[1] ?? '0');
+          const lastH = [...d.matchAll(/H\s*([\d.-]+)/g)].pop();
+          const endX = lastH ? parseFloat(lastH[1]) : startX;
+          return startX > endX ? -len : len;
         },
       },
       { strokeDashoffset: 0, duration: 1.5, stagger: 0.2, ease: 'power2.out' },
