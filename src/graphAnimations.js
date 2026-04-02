@@ -303,7 +303,11 @@ export function revealGraf(el) {
       $maskPaths,
       {
         strokeDasharray: (i, el) => parseFloat(el.style.strokeDasharray) || el.getTotalLength(),
-        strokeDashoffset: (i, el) => parseFloat(el.style.strokeDasharray) || el.getTotalLength(),
+        strokeDashoffset: (i, el) => {
+          const len = parseFloat(el.style.strokeDasharray) || el.getTotalLength();
+          // Negative offset for right-starting paths so all lines reveal left → right visually
+          return el.getPointAtLength(0).x > el.getPointAtLength(len).x ? -len : len;
+        },
       },
       { strokeDashoffset: 0, duration: 1.5, stagger: 0.2, ease: 'power2.out' },
       '-=0.2'
