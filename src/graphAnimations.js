@@ -236,6 +236,7 @@ export function revealGraf(el) {
   const $mask = $el.find('[data-anim="graph-mask"]');
   const $chart = $el.find('[data-anim="chart"]');
   const $maskPaths = $mask.find('path');
+  const $maskDots = $mask.find('[id^="dots"]');
   const $cursor = $el.find('[data-anim="cursor"]');
   const $dot = $el.find('[data-anim="dot"]');
   const $lineH = $el.find('[id^="line-h"]');
@@ -243,6 +244,8 @@ export function revealGraf(el) {
   const $lineGroups = $el.find('[id^="line-group"]');
   const $lineTop = $el.find('[id^="line-top"]');
   const $lineBottom = $el.find('[id^="line-bottom"]');
+  const $lineLeft = $el.find('[id^="line-left"]');
+  const $lineRight = $el.find('[id^="line-right"]');
   const $tooltip = $el.find('[data-anim="tooltip"]');
   const $label = $el.find('[data-anim="label"]');
   const $graphTable = $el.find('[data-anim="graph-table"]');
@@ -261,12 +264,15 @@ export function revealGraf(el) {
   // ────────────────────────────────────────────────────────────────────────────
 
   if ($dots.length) gsap.set($dots, { scale: 0, transformOrigin: 'center' });
+  if ($maskDots.length) gsap.set($maskDots, { scale: 0, transformOrigin: 'center' });
   if ($chart.length) gsap.set($chart, { rotate: 25, autoAlpha: 0 });
   if ($cursor.length) gsap.set($cursor, { autoAlpha: 0 });
   if ($lineH.length) gsap.set($lineH, { scaleX: 0, transformOrigin: 'left center' });
   if ($lineV.length) gsap.set($lineV, { scaleY: 0, transformOrigin: 'center bottom' });
   if ($lineTop.length) gsap.set($lineTop, { scaleY: 0, transformOrigin: 'center top' });
   if ($lineBottom.length) gsap.set($lineBottom, { scaleY: 0, transformOrigin: 'center bottom' });
+  if ($lineLeft.length) gsap.set($lineLeft, { scaleX: 0, transformOrigin: 'left center' });
+  if ($lineRight.length) gsap.set($lineRight, { scaleX: 0, transformOrigin: 'right center' });
   if ($dot.length) gsap.set($dot, { x: '10em', y: '10em' });
   if ($tooltip.length) gsap.set($tooltip, { scale: 0.5, transformOrigin: 'left', autoAlpha: 0 });
   if ($label.length) gsap.set($label, { scale: 0.5, transformOrigin: 'center', autoAlpha: 0 });
@@ -296,18 +302,37 @@ export function revealGraf(el) {
   }
 
   if ($maskPaths.length) {
-    // fromTo with immediateRender: true (GSAP default) applies the FROM state the
-    // moment the tween is added — no separate gsap.set needed, and GSAP always knows
-    // the explicit start value so lazy-capture issues on mobile can't occur.
-    tl.fromTo(
-      $maskPaths,
-      {
-        strokeDasharray: (i, el) => parseFloat(el.style.strokeDasharray) || el.getTotalLength(),
-        strokeDashoffset: (i, el) => parseFloat(el.style.strokeDasharray) || el.getTotalLength(),
-      },
-      { strokeDashoffset: 0, duration: 1.5, stagger: 0.2, ease: 'power2.out' },
-      '-=0.2'
-    );
+    // Split paths into dashed (clip-path reveal to preserve dash pattern)
+    // and solid (classic strokeDashoffset draw-on)
+    const dashed = [];
+    const solid = [];
+    $maskPaths.each((_, el) => {
+      (el.getAttribute('stroke-dasharray') ? dashed : solid).push(el);
+    });
+
+    if (solid.length) {
+      tl.fromTo(
+        solid,
+        {
+          strokeDasharray: (i, el) => parseFloat(el.style.strokeDasharray) || el.getTotalLength(),
+          strokeDashoffset: (i, el) => parseFloat(el.style.strokeDasharray) || el.getTotalLength(),
+        },
+        { strokeDashoffset: 0, duration: 1.5, stagger: 0.2, ease: 'power2.out' },
+        '-=0.2'
+      );
+    }
+
+    if (dashed.length) {
+      gsap.set(dashed, { clipPath: 'inset(0 100% 0 0)' });
+      tl.to(
+        dashed,
+        { clipPath: 'inset(0 0% 0 0)', duration: 1.5, stagger: 0.2, ease: 'power2.out' },
+        solid.length ? '<' : '-=0.2'
+      );
+    }
+  }
+  if ($maskDots.length) {
+    tl.to($maskDots, { scale: 1, duration: 0.25, stagger: 0.04, ease: 'back.out(3)' });
   }
 
   if ($chart.length) {
@@ -346,17 +371,23 @@ export function revealGraf(el) {
       '-=0.8'
     );
   if ($lineGroups.length) {
-    // Grouped bars: right to left, each group's bars grow simultaneously
-    // Supports line-v (bottom), line-top (top→down), line-bottom (bottom→up)
+    // Grouped bars: each group's bars grow simultaneously
+    // Supports vertical (line-v, line-top, line-bottom) and horizontal (line-left, line-right)
     const groups = [...$lineGroups];
     groups.forEach((group, i) => {
-      const bars = [
-        ...$(group).find('[id^="line-v"]').toArray(),
-        ...$(group).find('[id^="line-top"]').toArray(),
-        ...$(group).find('[id^="line-bottom"]').toArray(),
+      const $g = $(group);
+      const vBars = [
+        ...$g.find('[id^="line-v"]').toArray(),
+        ...$g.find('[id^="line-top"]').toArray(),
+        ...$g.find('[id^="line-bottom"]').toArray(),
       ];
-      if (!bars.length) return;
-      tl.to(bars, { scaleY: 1, duration: 0.5, ease: 'power2.out' }, i === 0 ? '-=0.8' : '>-=0.3');
+      const hBars = [
+        ...$g.find('[id^="line-left"]').toArray(),
+        ...$g.find('[id^="line-right"]').toArray(),
+      ];
+      const pos = i === 0 ? '-=0.8' : '>-=0.3';
+      if (vBars.length) tl.to(vBars, { scaleY: 1, duration: 0.5, ease: 'power2.out' }, pos);
+      if (hBars.length) tl.to(hBars, { scaleX: 1, duration: 0.5, ease: 'power2.out' }, pos);
     });
   } else if ($lineV.length) {
     tl.to(
