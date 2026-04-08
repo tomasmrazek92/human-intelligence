@@ -485,17 +485,17 @@ export function revealPlatformIllustration(el) {
   }
 
   // 2. Human connector
-  if (human) tl.to(human, { autoAlpha: 1, y: 0, duration: 0.35 }, '>-0.15');
+  if (human) tl.to(human, { autoAlpha: 1, y: 0, duration: 0.35 }, '>-0.3');
 
   // 3. Service boxes
   if (serviceBoxes.length) {
-    tl.to(serviceBoxes, { autoAlpha: 1, y: 0, duration: 0.35, stagger: 0.08 }, '>-0.15');
+    tl.to(serviceBoxes, { autoAlpha: 1, y: 0, duration: 0.35, stagger: 0.08 }, '>-0.3');
   }
 
   // 4. Options panel
   if (options) {
     gsap.set(options, { x: -12 });
-    tl.to(options, { autoAlpha: 1, x: 0, y: 0, duration: 0.35 }, '>-0.1');
+    tl.to(options, { autoAlpha: 1, x: 0, y: 0, duration: 0.35 }, '>-0.25');
   }
 
   // 5. Agent boxes
@@ -503,21 +503,21 @@ export function revealPlatformIllustration(el) {
     tl.to(
       agentBoxes,
       { autoAlpha: 1, y: 0, duration: 0.4, stagger: 0.08, ease: 'back.out(1.4)' },
-      '>-0.1'
+      '>-0.25'
     );
   }
 
   // 6. Logo
   if (logo) {
     gsap.set(logo, { scale: 0.9 });
-    tl.to(logo, { autoAlpha: 1, y: 0, scale: 1, duration: 0.45, ease: 'back.out(1.7)' }, '>-0.05');
+    tl.to(logo, { autoAlpha: 1, y: 0, scale: 1, duration: 0.45, ease: 'back.out(1.7)' }, '>-0.2');
   }
 
   // 7. Query box
-  if (queryBox) tl.to(queryBox, { autoAlpha: 1, y: 0, duration: 0.4 }, '>-0.05');
+  if (queryBox) tl.to(queryBox, { autoAlpha: 1, y: 0, duration: 0.4 }, '>-0.2');
 
   // 8. Labels
-  if (labels.length) tl.to(labels, { autoAlpha: 1, y: 0, duration: 0.3, stagger: 0.06 }, '>-0.1');
+  if (labels.length) tl.to(labels, { autoAlpha: 1, y: 0, duration: 0.3, stagger: 0.06 }, '>-0.2');
 
   return tl;
 }

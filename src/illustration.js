@@ -144,7 +144,9 @@ export function runSecureMCP() {
 
       // Agent builder tiles hidden individually so parent group can be revealed
       // without flashing all children at once
-      gsap.set('#layer_11, #layer_12, #claude, #agent-builder_2, #label_6', { autoAlpha: 0 });
+      gsap.set('#layer_11, #layer_12, #claude, #notion, #agent-builder_2, #label_6', {
+        autoAlpha: 0,
+      });
 
       // Highlight fill hidden individually — drawSVG deferred to highlightTimeline
       // so path length is measured after the parent is visible
