@@ -40,7 +40,8 @@ export function initPlatformDots(selector = '[data-dots="platform"]') {
       animation-play-state: paused;
     }
 
-    [data-dots="platform"] #purple-side g[id^="group-"] {
+    [data-dots="platform"] #purple-side g[id^="group-"],
+    [data-dots="platform"] #purple-side g[id^="group_"] {
       transform-box: fill-box;
       transform-origin: center;
       animation: platform-group-breathe ${GROUP_DUR}s ease-in-out infinite;
@@ -62,14 +63,16 @@ export function initPlatformDots(selector = '[data-dots="platform"]') {
   });
 
   // Assign staggered delay across all purple groups
-  const groups = [...svg.querySelectorAll('#purple-side g[id^="group-"]')];
+  const groups = [
+    ...svg.querySelectorAll('#purple-side g[id^="group-"], #purple-side g[id^="group_"]'),
+  ];
   const total = groups.length;
   groups.forEach((group, i) => {
     const delay = (((total - 1 - i) / total) * GROUP_SPREAD).toFixed(2);
     group.style.animationDelay = `-${delay}s`;
   });
 
-  const els = '#gray-side rect, #purple-side g[id^="group-"]';
+  const els = '#gray-side rect, #purple-side g[id^="group-"], #purple-side g[id^="group_"]';
 
   const attachObserver = () => {
     // IntersectionObserver toggles play-state — no JS runs while off-screen

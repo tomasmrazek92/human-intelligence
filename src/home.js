@@ -3,44 +3,59 @@ import {
   revealChatBox,
   revealGraf,
   revealPlatformIllustration,
+  revealResponse,
 } from './graphAnimations';
 
 // ── Hero graph ──────────────────────────────────────────────────────────────
-$('.hero-graph').each(function () {
+$('.claude-dashboard').each(function () {
   const trigger = $(this);
   const chatBubble = trigger.find('[data-anim="chat-bubble"]');
-
-  setTimeout(() => revealDotGrid({ container: this }), 500);
+  const chatResponse = trigger.find('[data-anim="response"]');
 
   gsap
     .timeline({ scrollTrigger: { trigger, start: '40 bottom', once: true } })
-    .add(revealChatBox(chatBubble));
-});
-
-// ── Natural language / bar chart ────────────────────────────────────────────
-$('.natural-language').each(function () {
-  const trigger = $(this);
-  const chatBubble = trigger.find('[data-anim="chat-bubble"]');
-
-  gsap
-    .timeline({ scrollTrigger: { trigger, start: 'top 80%', once: true } })
-    .add(revealChatBox(chatBubble), 0)
-    .add(revealGraf(trigger), '<1');
-});
-
-// ── Deep research ───────────────────────────────────────────────────────────
-$('[data-anim="deep-research"]').each(function () {
-  const trigger = $(this);
-  const chart = trigger.find('.deep-research_box');
-  const chatBubble = trigger.find('[data-anim="chat-bubble"]');
-
-  gsap
-    .timeline({ scrollTrigger: { trigger, start: 'top 80%', once: true } })
     .add(revealChatBox(chatBubble))
-    .add(revealGraf(chart), '<1');
+    .add(revealResponse(chatResponse), '>-1')
+    .add(revealGraf(trigger), '>-2');
+});
+
+// ── Claude Feature ──────────────────────────────────────────────────────────────
+$('[data-anim="claude-feature"]').each(function () {
+  const trigger = $(this);
+  const chatBubble = trigger.find('[data-anim="chat-bubble"]');
+  const chatResponse = trigger.find('[data-anim="response"]');
+
+  gsap
+    .timeline({ scrollTrigger: { trigger, start: '40% bottom', once: true } })
+    .add(revealChatBox(chatBubble))
+    .add(revealResponse(chatResponse), '>-1')
+    .add(revealGraf(trigger), '>-2');
+});
+
+// ── Chat Feature ──────────────────────────────────────────────────────────────
+$('[data-anim="chat-feature"]').each(function () {
+  const trigger = $(this);
+  const chatBubble = trigger.find('[data-anim="chat-bubble"]');
+  const chatResponse = trigger.find('[data-anim="response"]');
+
+  gsap
+    .timeline({ scrollTrigger: { trigger, start: '40% bottom', once: true } })
+    .add(revealChatBox(chatBubble))
+    .add(revealResponse(chatResponse), '>-1')
+    .add(revealGraf(trigger), '>-2');
 });
 
 // ── Platform illustration ───────────────────────────────────────────────────
+$('[data-anim="platform-top"]').each(function () {
+  gsap
+    .timeline({
+      delay: 1,
+      scrollTrigger: { trigger: this, start: 'top bottom', once: true },
+      onComplete: () => window.dispatchEvent(new Event('platform-illustration-complete')),
+    })
+    .add(revealPlatformIllustration(this));
+});
+
 $('[data-anim="platform"]').each(function () {
   gsap
     .timeline({

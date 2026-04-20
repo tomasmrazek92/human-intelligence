@@ -152,8 +152,87 @@ export function revealChatBox(
       sub.to($label, { x: '0rem', opacity: 1, filter: 'blur(0px)', duration: 0.5 }, 0);
     }
 
-    tl.add(sub, i === 0 ? 0 : `>+=${stagger}`);
+    tl.add(sub, i === 0 ? 0 : `>-1`);
   });
+
+  return tl;
+}
+
+/**
+ * Claude response block — head, typed text, source logos stagger.
+ *
+ * Attrs (add to HTML):
+ *   wrapper   data-anim="response"          the outer container
+ *   head      data-anim="response-head"     header row (icon + label)
+ *   text      data-anim="response-text"     response paragraph
+ *   sources   data-anim="response-sources"  sources bar (logos + text)
+ *
+ * Options:
+ *   typeDuration  seconds for typeText spread (default: 1.2)
+ *   logoStagger   seconds between each source logo (default: 0.08)
+ */
+export function revealResponse(el, { typeDuration = 1.2, logoStagger = 0.08 } = {}) {
+  const $el = $(el);
+  const $head = $el.find('[data-anim="response-head"]');
+  const $text = $el.find('[data-anim="response-text"]');
+  const $sources = $el.find('[data-anim="response-sources"]');
+  const $logos = $sources.find('svg, img');
+
+  // Initial state
+  gsap.set(el, { opacity: 0, y: '3rem', filter: 'blur(6px)' });
+  if ($head.length) gsap.set($head, { opacity: 0, x: '-0.5rem' });
+  if ($text.length) gsap.set($text, { opacity: 0 });
+  if ($sources.length) gsap.set($sources, { opacity: 0 });
+  if ($logos.length) gsap.set($logos.toArray(), { opacity: 0, scale: 0.6 });
+
+  const tl = gsap.timeline();
+
+  // 1 — Container slides up
+  tl.to(el, {
+    opacity: 1,
+    y: '0rem',
+    filter: 'blur(0px)',
+    duration: 0.4,
+    ease: 'power3.out',
+  });
+
+  // 2 — Head row fades in
+  if ($head.length) {
+    tl.to(
+      $head,
+      {
+        opacity: 1,
+        x: '0rem',
+        duration: 0.25,
+        ease: 'power2.out',
+      },
+      '>-0.3'
+    );
+  }
+
+  // 3 — Text types in
+  if ($text.length) {
+    tl.to($text, { opacity: 1, duration: 0.1 }, '>-0.15');
+    tl.add(typeText($text[0], typeDuration), '<');
+  }
+
+  // 4 — Sources bar + logos stagger (fires during typeText, not after)
+  if ($sources.length) {
+    tl.to($sources, { opacity: 1, duration: 0.15 }, '<+0.4');
+    if ($logos.length) {
+      tl.to(
+        $logos.toArray(),
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.2,
+          ease: 'back.out(2)',
+          stagger: logoStagger,
+        },
+        '<'
+      );
+    }
+  }
 
   return tl;
 }
@@ -250,24 +329,34 @@ export function revealGraf(el) {
   const $label = $el.find('[data-anim="label"]');
   const $graphTable = $el.find('[data-anim="graph-table"]');
 
-  // ── Bar chart base (grid, labels, legend) ───────────────────────────────────
+  // ── Bar chart base (grid, labels, legend, rows) ─────────────────────────────
   const base = $base[0];
   const grid = base ? base.querySelector('#grid') : null;
   const labelsY = base ? [...base.querySelectorAll('#stats-vertical path')] : [];
   const labelsX = base ? [...base.querySelectorAll('#stats-horizontal path')] : [];
   const legend = base ? [...base.querySelectorAll('#legend > g')] : [];
+  const baseRows = base ? [...base.querySelectorAll('[id^="row_"]')] : [];
 
   if (grid) gsap.set(grid, { autoAlpha: 0 });
   if (labelsY.length) gsap.set(labelsY, { autoAlpha: 0, x: -8 });
   if (labelsX.length) gsap.set(labelsX, { autoAlpha: 0, y: 8 });
   if (legend.length) gsap.set(legend, { autoAlpha: 0, y: 6 });
+
+  // Row-based table initial state
+  baseRows.forEach((row) => {
+    const rowBase = row.querySelector('#base');
+    const others = [...row.children].filter((c) => c.id !== 'base');
+    gsap.set(row, { autoAlpha: 0 });
+    if (rowBase) gsap.set(rowBase, { clipPath: 'inset(0 100% 0 0)' });
+    if (others.length) gsap.set(others, { autoAlpha: 0, y: 4 });
+  });
   // ────────────────────────────────────────────────────────────────────────────
 
   if ($dots.length) gsap.set($dots, { scale: 0, transformOrigin: 'center' });
   if ($maskDots.length) gsap.set($maskDots, { scale: 0, transformOrigin: 'center' });
   if ($chart.length) gsap.set($chart, { rotate: 25, autoAlpha: 0 });
   if ($cursor.length) gsap.set($cursor, { autoAlpha: 0 });
-  if ($lineH.length) gsap.set($lineH, { scaleX: 0, transformOrigin: 'left center' });
+  if ($lineH.length) gsap.set($lineH, { clipPath: 'inset(0 100% 0 0)' });
   if ($lineV.length) gsap.set($lineV, { scaleY: 0, transformOrigin: 'center bottom' });
   if ($lineTop.length) gsap.set($lineTop, { scaleY: 0, transformOrigin: 'center top' });
   if ($lineBottom.length) gsap.set($lineBottom, { scaleY: 0, transformOrigin: 'center bottom' });
@@ -277,7 +366,6 @@ export function revealGraf(el) {
   if ($tooltip.length) gsap.set($tooltip, { scale: 0.5, transformOrigin: 'left', autoAlpha: 0 });
   if ($label.length) gsap.set($label, { scale: 0.5, transformOrigin: 'center', autoAlpha: 0 });
 
-
   // Bar chart base reveal — individual children, no parent fade
   if (grid) tl.to(grid, { autoAlpha: 1, duration: 0.4, ease: 'power2.out' }, 0);
   if (labelsY.length)
@@ -286,6 +374,25 @@ export function revealGraf(el) {
     tl.to(labelsX, { autoAlpha: 1, y: 0, duration: 0.3, stagger: 0.04, ease: 'power2.out' }, 0.1);
   if (legend.length)
     tl.to(legend, { autoAlpha: 1, y: 0, duration: 0.4, stagger: 0.06, ease: 'power2.out' }, 0.4);
+
+  // Row-by-row reveal: base scales from left, others fade in
+  if (baseRows.length) {
+    baseRows.forEach((row, i) => {
+      const rowBase = row.querySelector('#base');
+      const others = [...row.children].filter((c) => c.id !== 'base');
+      const pos = i === 0 ? '>-0.15' : '>-0.18';
+
+      tl.set(row, { autoAlpha: 1 }, pos);
+      if (others.length)
+        tl.to(
+          others,
+          { autoAlpha: 1, y: 0, duration: 0.2, stagger: 0.02, ease: 'power2.out' },
+          '<'
+        );
+      if (rowBase)
+        tl.to(rowBase, { clipPath: 'inset(0 0% 0 0)', duration: 0.35, ease: 'power2.out' }, '<');
+    });
+  }
 
   if ($dots.length) {
     const shuffled = gsap.utils.shuffle([...$dots]);
@@ -367,8 +474,8 @@ export function revealGraf(el) {
   if ($lineH.length)
     tl.to(
       [...$lineH].reverse(),
-      { scaleX: 1, duration: 0.5, stagger: 0.06, ease: 'power2.out' },
-      '-=0.8'
+      { clipPath: 'inset(0 0% 0 0)', duration: 0.5, stagger: 0.06, ease: 'power2.out' },
+      '-=0.4'
     );
   if ($lineGroups.length) {
     // Grouped bars: each group's bars grow simultaneously
@@ -463,9 +570,12 @@ export function revealPlatformIllustration(el) {
   const options = $el.find('.platform-illustrations_options')[0];
   const serviceBoxes = $el.find('.platform-illustration_service-box').toArray();
   const human = $el.find('.platform-illustrations_human')[0];
-  const baseBoxes = $el.find('.platform-illustrations_base-box').toArray();
+  const baseBoxes = $el
+    .find('.platform-illustrations_base-box, .page-header_side-diagram-box')
+    .toArray();
   const queryBox = $el.find('.platform-illustration_query-box')[0];
   const labels = $el.find('.platform-illustrations_label').toArray();
+  const staticBase = $el.find('[data-anim="platform-dots"]')[0];
 
   // ── Initial hidden state ────────────────────────────────────────────────────
   gsap.set([logo, options, human, queryBox].filter(Boolean), { autoAlpha: 0, y: 20 });
@@ -473,6 +583,7 @@ export function revealPlatformIllustration(el) {
   gsap.set(agentBoxes, { autoAlpha: 0, y: 24 });
   gsap.set(serviceBoxes, { autoAlpha: 0, y: 20 });
   gsap.set(baseBoxes, { autoAlpha: 0, y: 16 });
+  gsap.set(staticBase, { autoAlpha: 0 });
   // ─────────────────────────────────────────────────────────────────────────────
 
   // 1. Base integration boxes
@@ -518,6 +629,9 @@ export function revealPlatformIllustration(el) {
 
   // 8. Labels
   if (labels.length) tl.to(labels, { autoAlpha: 1, y: 0, duration: 0.3, stagger: 0.06 }, '>-0.2');
+
+  // 9. Static Base
+  if (staticBase) tl.to(staticBase, { autoAlpha: 1, duration: 1 }, '>-0.2');
 
   return tl;
 }

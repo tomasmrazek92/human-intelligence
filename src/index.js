@@ -10,7 +10,7 @@ gsap.registerPlugin(SplitText, ScrollTrigger, DrawSVGPlugin);
 
 window.addEventListener('load', () => {
   requestAnimationFrame(() => {
-    initPlatformDots();
+    // initPlatformDots();
     runSecureMCP();
 
     // Requires <style>body { opacity: 0; }</style> inline in <head> to prevent flash.
@@ -20,7 +20,7 @@ window.addEventListener('load', () => {
       $('body').attr('data-anim-loaded', 'true');
       initGlobalParallax();
       initScrambleText();
-      runPattern();
+      // runPattern();
       initHighlightMarkerTextReveal();
       initContentRevealScroll();
     }, 400);

@@ -109,6 +109,8 @@ export function runSecureMCP() {
         layer_12: { duration: 1.7, delay: 0.2, y: 1 },
         layer_11: { duration: 1.9, delay: 0.4 },
         claude: { duration: 1.8, delay: 0.6 },
+        airtable: { duration: 1.8, delay: 0.6 },
+        notion: { duration: 1.8, delay: 0.6 },
         agentBuilder: { duration: 2.0, delay: 0.8 },
       },
     },
@@ -144,7 +146,7 @@ export function runSecureMCP() {
 
       // Agent builder tiles hidden individually so parent group can be revealed
       // without flashing all children at once
-      gsap.set('#layer_11, #layer_12, #claude, #notion, #agent-builder_2, #label_6', {
+      gsap.set('#layer_11, #layer_12, #claude, #airtable, #notion, #agent-builder_2, #label_6', {
         autoAlpha: 0,
       });
 
@@ -364,7 +366,7 @@ export function runSecureMCP() {
         .to('#label_6', { autoAlpha: 1, duration: c.agentLabel.duration })
         .set('#agent-builders', { autoAlpha: 1 })
         .fromTo(
-          '#layer_12, #layer_11, #claude, #agent-builder_2',
+          '#layer_12, #layer_11, #claude, #airtable, #notion, #agent-builder_2',
           { y: CONFIG.dropY, autoAlpha: 0 },
           { y: 0, autoAlpha: 1, duration: c.tiles.duration, stagger: c.tiles.stagger }
         )
@@ -373,8 +375,8 @@ export function runSecureMCP() {
           [
             ['#mcp', h.mcp],
             ['#layer_12', h.layer_12],
-            ['#layer_11', h.layer_11],
             ['#claude', h.claude],
+            ['#airtable', h.airtable],
             ['#agent-builder_2', h.agentBuilder],
           ].forEach(([id, cfg]) => {
             floatTweens.push(

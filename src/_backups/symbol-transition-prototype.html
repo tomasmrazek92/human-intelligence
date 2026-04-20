@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Symbol Grid Transition — Prototype</title>
+
+  <!-- Dependencies -->
+  <link rel="stylesheet" href="https://unpkg.com/lenis@1.3.17/dist/lenis.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.15/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.15/dist/CustomEase.min.js"></script>
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --color-bg: #121416;
+      --color-text: #F5F3EF;
+      --color-text-dim: rgba(245, 243, 239, 0.5);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      overflow-x: hidden;
+    }
+
+    /* ── Transition overlay ─────────────────────────────── */
+    .transition {
+      z-index: 100;
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      overflow: clip;
+    }
+
+    .transition__panel {
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .transition__pixel {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .transition__pixel svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* ── Page containers ────────────────────────────────── */
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      position: relative;
+      background: var(--color-bg);
+      color: var(--color-text);
+    }
+
+    .page h1 {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      text-align: center;
+      max-width: 14ch;
+      margin-bottom: 1.5rem;
+    }
+
+    .page p {
+      font-size: clamp(1rem, 1.5vw, 1.25rem);
+      max-width: 42ch;
+      text-align: center;
+      color: var(--color-text-dim);
+      line-height: 1.6;
+      margin-bottom: 2.5rem;
+    }
+
+    .trigger-btn {
+      appearance: none;
+      border: 1px solid rgba(245, 243, 239, 0.25);
+      background: transparent;
+      color: var(--color-text);
+      font-size: 1rem;
+      padding: 0.85rem 2.2rem;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      transition: background 0.25s, border-color 0.25s;
+      pointer-events: all;
+      position: relative;
+      z-index: 10;
+    }
+
+    .trigger-btn:hover {
+      background: rgba(245, 243, 239, 0.08);
+      border-color: rgba(245, 243, 239, 0.5);
+    }
+
+    /* Hidden page */
+    .page--hidden {
+      position: fixed;
+      inset: 0;
+      visibility: hidden;
+      opacity: 0;
+      z-index: 1;
+    }
+
+    .page--visible {
+      position: relative;
+      visibility: visible;
+      opacity: 1;
+      z-index: 2;
+    }
+
+    /* Symbol in nav area */
+    .page-symbol {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 2rem;
+      opacity: 0.15;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Shared SVG gradient defs -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+    <defs>
+      <radialGradient id="hex-bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(42 32.5) rotate(83.2409) scale(67.9724 244.947)">
+        <stop stop-color="#1A1A1A"/>
+        <stop offset="1" stop-color="#1C1E1F"/>
+      </radialGradient>
+      <linearGradient id="hex-stroke" x1="8.5" y1="6.0481" x2="87" y2="84.5481" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#121416"/>
+        <stop offset="1" stop-color="#7D8187" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- Transition overlay -->
+  <div data-transition-wrap class="transition">
+    <div data-transition-panel class="transition__panel"></div>
+  </div>
+
+  <!-- Page A -->
+  <div id="page-a" class="page page--visible">
+    <svg class="page-symbol" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M26.7242 0L40 11.5629V26.7801L26.7801 40H24.8V37.2V27.6H15.2V37.2V40H13.2613L0 28.0219V13.2199L13.2199 0H15.2V2.8V12.4H24.8V2.8V0H26.7242ZM12.4 35.4488V27.6H3.71016L12.4 35.4488ZM27.6 35.2203L35.2203 27.6H27.6V35.2203ZM27.6 24.8H37.2V15.2H27.6V24.8ZM15.2 24.8H24.8V15.2H15.2V24.8ZM2.8 24.8H12.4V15.2H2.8V24.8ZM27.6 12.4H36.6977L27.6 4.47578V12.4ZM4.77969 12.4H12.4V4.77969L4.77969 12.4Z" fill="currentColor"/>
+    </svg>
+    <h1>Human Intelligence</h1>
+    <p>Enterprise AI platform that augments human decision-making with advanced machine intelligence.</p>
+    <button class="trigger-btn" onclick="triggerTransition('b')">View Overview &rarr;</button>
+  </div>
+
+  <!-- Page B -->
+  <div id="page-b" class="page page--hidden">
+    <svg class="page-symbol" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M26.7242 0L40 11.5629V26.7801L26.7801 40H24.8V37.2V27.6H15.2V37.2V40H13.2613L0 28.0219V13.2199L13.2199 0H15.2V2.8V12.4H24.8V2.8V0H26.7242ZM12.4 35.4488V27.6H3.71016L12.4 35.4488ZM27.6 35.2203L35.2203 27.6H27.6V35.2203ZM27.6 24.8H37.2V15.2H27.6V24.8ZM15.2 24.8H24.8V15.2H15.2V24.8ZM2.8 24.8H12.4V15.2H2.8V24.8ZM27.6 12.4H36.6977L27.6 4.47578V12.4ZM4.77969 12.4H12.4V4.77969L4.77969 12.4Z" fill="currentColor"/>
+    </svg>
+    <h1>Platform Overview</h1>
+    <p>A unified system connecting agents, services, and integrations &mdash; designed to scale with your organization.</p>
+    <button class="trigger-btn" onclick="triggerTransition('a')">&larr; Back Home</button>
+  </div>
+
+  <script>
+    gsap.registerPlugin(CustomEase);
+    CustomEase.create("osmo", "0.625, 0.05, 0, 1");
+
+    // ── Config ──────────────────────────────────────────
+    const symbolHorizontalAmount = 32;
+    const transitionDuration = 1.4;
+    const symbolFadeDuration = 0.4;
+    const symbolOverlap = 0.2;
+
+    let isAnimating = false;
+
+    // ── Hex SVG paths ───────────────────────────────────
+    const hexShape = "M44.25 3.89746C47.8081 1.84318 52.1919 1.84318 55.75 3.89746L87.0518 21.9688C90.6096 24.023 92.8016 27.8195 92.8018 31.9277V68.0723C92.8016 72.1805 90.6096 75.977 87.0518 78.0312L55.75 96.1025C52.1919 98.1568 47.8081 98.1568 44.25 96.1025L12.9482 78.0312C9.39044 75.977 7.19939 72.1805 7.19922 68.0723V31.9277C7.19939 27.8195 9.39044 24.023 12.9482 21.9688L44.25 3.89746Z";
+    const logoShape = "M56.7242 30L70 41.5629V56.7801L56.7801 70H54.8V67.2V57.6H45.2V67.2V70H43.2613L30 58.0219V43.2199L43.2199 30H45.2V32.8V42.4H54.8V32.8V30H56.7242ZM42.4 65.4488V57.6H33.7102L42.4 65.4488ZM57.6 65.2203L65.2203 57.6H57.6V65.2203ZM57.6 54.8H67.2V45.2H57.6V54.8ZM45.2 54.8H54.8V45.2H45.2V54.8ZM32.8 54.8H42.4V45.2H32.8V54.8ZM57.6 42.4H66.6977L57.6 34.4758V42.4ZM34.7797 42.4H42.4V34.7797L34.7797 42.4Z";
+
+    // ── Build honeycomb grid ────────────────────────────
+    function symbolGrid() {
+      const panel = document.querySelector("[data-transition-panel]");
+      if (!panel) return;
+
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      const cols = symbolHorizontalAmount;
+
+      // Size each hex – oversized for overlap
+      const hexW = Math.ceil(W / cols * 1.35);
+      const hexH = hexW; // 100x100 viewBox = square
+      // Spacing: position them closer than their size so they overlap horizontally too
+      const stepX = Math.floor(W / cols);
+      const rowH = Math.floor(hexH * 0.65);
+      const rows = Math.ceil(H / rowH) + 2;
+
+      panel.innerHTML = "";
+
+      // Create a reusable template element
+      const template = document.createElement("div");
+      template.className = "transition__pixel";
+      template.setAttribute("data-transition-pixel", "");
+      template.innerHTML = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="${hexShape}" fill="white"/>
+        <path d="${hexShape}" fill="url(#hex-bg)"/>
+        <path d="${hexShape}" stroke="url(#hex-stroke)" fill="none"/>
+        <path opacity="0.4" fill-rule="evenodd" clip-rule="evenodd" d="${logoShape}" fill="#7D7D7D"/>
+      </svg>`;
+
+      const frag = document.createDocumentFragment();
+      const colWidth = W / cols;
+
+      for (let row = 0; row < rows; row++) {
+        const isOffset = row % 2 === 1;
+
+        for (let col = -2; col <= cols + 1; col++) {
+          const x = col * stepX + (isOffset ? stepX * 0.5 : 0) - (hexW - stepX) * 0.5;
+          const y = row * rowH - hexH * 0.25;
+
+          if (x + hexW < -hexW * 0.5 || x > W + hexW * 0.5) continue;
+
+          const centerX = x + hexW * 0.5;
+          const animCol = Math.max(0, Math.min(cols - 1, Math.floor(centerX / colWidth)));
+
+          const px = template.cloneNode(true);
+
+          // Organic variation: slight random scale
+          const hash = Math.sin(col * 127.1 + row * 311.7) * 43758.5453;
+          const rand = hash - Math.floor(hash);
+          const scale = 0.96 + rand * 0.08;
+
+          px.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:${hexW}px;height:${hexH}px;transform:scale(${scale.toFixed(3)});`;
+          px.dataset.col = animCol;
+
+          frag.appendChild(px);
+        }
+      }
+
+      panel.appendChild(frag);
+    }
+
+    // ── Transition ──────────────────────────────────────
+    function triggerTransition(targetId) {
+      if (isAnimating) return;
+      isAnimating = true;
+
+      const current = document.querySelector(".page--visible");
+      const next = document.getElementById("page-" + targetId);
+      if (!current || !next || current === next) {
+        isAnimating = false;
+        return;
+      }
+
+      symbolGrid();
+
+      const transitionPanel = document.querySelector("[data-transition-panel]");
+      const allPixels = Array.from(transitionPanel.querySelectorAll("[data-transition-pixel]"));
+      const totalHexes = allPixels.length;
+
+      // ── Timing ──────────────────────────────────────────
+      const fillDuration = 0.45;
+      const holdDuration = 0.1;
+      const unfillDuration = 0.45;
+      const scaleInDur = 0.18;
+      const scaleOutDur = 0.15;
+
+      const tl = gsap.timeline({
+        onComplete: () => { isAnimating = false; },
+      });
+
+      // Reset all hexes hidden + small, panel visible
+      gsap.set(allPixels, { opacity: 0, scale: 0.5 });
+      gsap.set(transitionPanel, { opacity: 1 });
+
+      // Next page ready but hidden behind overlay
+      next.classList.remove("page--hidden");
+      next.classList.add("page--visible");
+      gsap.set(next, {
+        position: "fixed", inset: 0,
+        visibility: "visible", opacity: 0,
+        zIndex: 5,
+      });
+
+      // ── Phase 1: FILL — hexes pop in randomly with scale ──────────
+      const shuffledIn = allPixels.slice().sort(() => Math.random() - 0.5);
+      const staggerIn = fillDuration / totalHexes;
+
+      shuffledIn.forEach((px, i) => {
+        tl.to(px, {
+          opacity: 1,
+          scale: 1,
+          duration: scaleInDur,
+          ease: "power3.out",
+        }, i * staggerIn);
+      });
+
+      // ── Phase 2: SWAP — at full coverage, swap pages ──────────────
+      const swapTime = fillDuration + scaleInDur + holdDuration;
+
+      tl.call(() => {
+        current.classList.remove("page--visible");
+        current.classList.add("page--hidden");
+        gsap.set(current, { clearProps: "all" });
+        gsap.set(next, { opacity: 1, position: "relative", zIndex: 2 });
+      }, null, swapTime);
+
+      // ── Phase 3: UNFILL — hexes shrink out randomly ───────────────
+      const shuffledOut = allPixels.slice().sort(() => Math.random() - 0.5);
+      const staggerOut = unfillDuration / totalHexes;
+
+      shuffledOut.forEach((px, i) => {
+        tl.to(px, {
+          opacity: 0,
+          scale: 0.5,
+          duration: scaleOutDur,
+          ease: "power3.in",
+        }, swapTime + i * staggerOut);
+      });
+
+      // ── Cleanup — wait for last hex animation to fully finish ───
+      const endTime = swapTime + unfillDuration + scaleOutDur + 0.05;
+
+      tl.call(() => {
+        gsap.set(next, { clearProps: "position,inset,zIndex" });
+      }, null, endTime);
+
+      tl.set(transitionPanel, { opacity: 0 }, endTime);
+    }
+  </script>
+</body>
+</html>
