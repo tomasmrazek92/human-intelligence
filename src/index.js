@@ -20,7 +20,7 @@ window.addEventListener('load', () => {
       $('body').attr('data-anim-loaded', 'true');
       initGlobalParallax();
       initScrambleText();
-      // runPattern();
+      runPattern();
       initHighlightMarkerTextReveal();
       initContentRevealScroll();
     }, 400);

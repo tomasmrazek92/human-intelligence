@@ -172,8 +172,6 @@ export function initScrambleText() {
 }
 
 export function initContentRevealScroll() {
-  if (window.innerWidth < 992) return;
-
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const CONFIG = {
@@ -366,4 +364,36 @@ export function initHighlightMarkerTextReveal() {
       },
     });
   });
+}
+
+export function initWhitePaperSwiper() {
+  const el = document.querySelector('.white-paper_testimonials');
+  if (!el) return;
+
+  const swiper = new Swiper(el, {
+    slidesPerView: 1,
+    autoHeight: true,
+    effect: 'fade',
+    fadeEffect: { crossFade: true },
+    speed: 600,
+    loop: true,
+    autoplay: false,
+    pagination: {
+      el: '.swiper-navigation',
+      bulletClass: 'swiper-dot',
+      bulletActiveClass: 'cc-active',
+      clickable: true,
+    },
+  });
+
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting) {
+        swiper.autoplay.start();
+        observer.disconnect();
+      }
+    },
+    { threshold: 0.3 }
+  );
+  observer.observe(el);
 }

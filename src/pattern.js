@@ -147,10 +147,18 @@ function startHighlightPulse(highlightPaths, wrapperEl) {
 
   pulseTls.push(tl);
 
-  new IntersectionObserver(([entry]) => {
-    if (entry.isIntersecting && !platformVisible) tl.play();
-    else tl.pause();
-  }).observe(wrapperEl);
+  new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting && !platformVisible) {
+        wrapperEl.style.visibility = '';
+        tl.play();
+      } else {
+        tl.pause();
+        wrapperEl.style.visibility = 'hidden';
+      }
+    },
+    { rootMargin: '100px 0px' }
+  ).observe(wrapperEl);
 }
 
 /**
@@ -257,6 +265,14 @@ function buildAppsIn(wrapperEl, { paused = false } = {}) {
 function initPulse(wrapperEl) {
   const builder = wrapperEl.querySelector('[data-svg="apps"]') ? buildAppsIn : buildPulseIn;
   builder(wrapperEl);
+
+  // Hide SVG containers when out of viewport to reduce compositing cost
+  new IntersectionObserver(
+    ([entry]) => {
+      wrapperEl.style.visibility = entry.isIntersecting ? '' : 'hidden';
+    },
+    { rootMargin: '100px 0px' }
+  ).observe(wrapperEl);
 }
 
 function initScroll(wrapperEl) {
@@ -269,6 +285,14 @@ function initScroll(wrapperEl) {
     once: true,
     onEnter: () => tl.play(),
   });
+
+  // Hide SVG containers when out of viewport to reduce compositing cost
+  new IntersectionObserver(
+    ([entry]) => {
+      wrapperEl.style.visibility = entry.isIntersecting ? '' : 'hidden';
+    },
+    { rootMargin: '100px 0px' }
+  ).observe(wrapperEl);
 }
 
 export function runPattern() {
@@ -297,6 +321,7 @@ export function runPattern() {
         ? `<svg data-svg="apps"       style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${normalizeSvgSize(entry.apps)}</svg>`
         : `<svg data-svg="highlight"  style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${normalizeSvgSize(entry.highlight)}</svg>`;
 
+      this.style.contentVisibility = 'auto';
       $(this).html(`
         <svg data-svg="base" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;${maskStyle}">${normalizeSvgSize(entry.base)}</svg>
         ${secondSvg}

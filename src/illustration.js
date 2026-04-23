@@ -374,7 +374,7 @@ export function runSecureMCP() {
           const h = CONFIG.floats.mcpAgents;
           [
             ['#mcp', h.mcp],
-            ['#layer_12', h.layer_12],
+            ['#layer_12', h.layer_12],data-highlight-marker-reveal
             ['#claude', h.claude],
             ['#airtable', h.airtable],
             ['#agent-builder_2', h.agentBuilder],

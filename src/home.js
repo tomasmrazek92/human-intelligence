@@ -5,6 +5,9 @@ import {
   revealPlatformIllustration,
   revealResponse,
 } from './graphAnimations';
+import { initWhitePaperSwiper } from './osmo';
+
+initWhitePaperSwiper();
 
 // ── Hero graph ──────────────────────────────────────────────────────────────
 $('.claude-dashboard').each(function () {
