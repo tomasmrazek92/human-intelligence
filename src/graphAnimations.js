@@ -6,12 +6,12 @@
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
 
-export function typeText(element, duration = 1, delay = 0) {
+export function typeText(element, duration = 0.5, delay = 0) {
   if (window.innerWidth < 992) return;
-  const split = new SplitText(element, { type: 'chars', linesClass: 'split-line' });
-  if (!split.chars.length) return;
-  gsap.set(split.chars, { visibility: 'hidden' });
-  return gsap.to(split.chars, {
+  const split = new SplitText(element, { type: 'words', linesClass: 'split-line' });
+  if (!split.words.length) return;
+  gsap.set(split.words, { visibility: 'hidden' });
+  return gsap.to(split.words, {
     visibility: 'visible',
     duration,
     delay,
@@ -337,6 +337,13 @@ export function revealGraf(el) {
   const legend = base ? [...base.querySelectorAll('#legend > g')] : [];
   const baseRows = base ? [...base.querySelectorAll('[id^="row_"]')] : [];
 
+  // If graph-base exists but has no recognised children, treat the whole element as a unit
+  const baseHasKnownChildren = grid || labelsY.length || labelsX.length || legend.length || baseRows.length;
+
+  if (base && !baseHasKnownChildren) {
+    gsap.set(base, { autoAlpha: 0 });
+  }
+
   if (grid) gsap.set(grid, { autoAlpha: 0 });
   if (labelsY.length) gsap.set(labelsY, { autoAlpha: 0, x: -8 });
   if (labelsX.length) gsap.set(labelsX, { autoAlpha: 0, y: 8 });
@@ -352,6 +359,8 @@ export function revealGraf(el) {
   });
   // ────────────────────────────────────────────────────────────────────────────
 
+  const $dotsContainer = $el.find('[data-anim="dots"]');
+  if ($dotsContainer.length) gsap.set($dotsContainer, { autoAlpha: 0 });
   if ($dots.length) gsap.set($dots, { scale: 0, transformOrigin: 'center' });
   if ($maskDots.length) gsap.set($maskDots, { scale: 0, transformOrigin: 'center' });
   if ($chart.length) gsap.set($chart, { rotate: 25, autoAlpha: 0 });
@@ -366,7 +375,11 @@ export function revealGraf(el) {
   if ($tooltip.length) gsap.set($tooltip, { scale: 0.5, transformOrigin: 'left', autoAlpha: 0 });
   if ($label.length) gsap.set($label, { scale: 0.5, transformOrigin: 'center', autoAlpha: 0 });
 
-  // Bar chart base reveal — individual children, no parent fade
+  // Bar chart base reveal
+  // Fallback: if no known children, fade the whole base in as one unit
+  if (base && !baseHasKnownChildren) {
+    tl.to(base, { autoAlpha: 1, duration: 0.5, ease: 'power2.out' }, 0);
+  }
   if (grid) tl.to(grid, { autoAlpha: 1, duration: 0.4, ease: 'power2.out' }, 0);
   if (labelsY.length)
     tl.to(labelsY, { autoAlpha: 1, x: 0, duration: 0.3, stagger: 0.06, ease: 'power2.out' }, 0.1);
@@ -396,6 +409,7 @@ export function revealGraf(el) {
 
   if ($dots.length) {
     const shuffled = gsap.utils.shuffle([...$dots]);
+    if ($dotsContainer.length) tl.set($dotsContainer, { autoAlpha: 1 }, '-=0.2');
     tl.to(
       shuffled,
       {
@@ -404,7 +418,7 @@ export function revealGraf(el) {
         stagger: $dots.length > 0 ? 1 / $dots.length : 0.03,
         ease: 'back.out(2)',
       },
-      '-=0.2'
+      '<'
     );
   }
 

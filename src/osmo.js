@@ -206,7 +206,10 @@ export function initContentRevealScroll() {
 
       // If no direct children, animate the group element itself
       const directChildren = Array.from(groupEl.children).filter(
-        (el) => el.nodeType === 1 && !el.hasAttribute('data-reveal-skip')
+        (el) =>
+          el.nodeType === 1 &&
+          !el.hasAttribute('data-reveal-skip') &&
+          !el.querySelector('[data-anim="dots"], [data-anim="graph-base"], [data-anim="graph-mask"]')
       );
       if (!directChildren.length) {
         gsap.set(groupEl, fromState);

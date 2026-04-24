@@ -42,8 +42,20 @@ $('[data-anim="product-chart"]').each(function () {
   const trigger = $(this);
   const chatBubble = trigger.find('[data-anim="chat-bubble"]');
 
-  gsap
-    .timeline({ scrollTrigger: { trigger, start: 'top 80%', once: true } })
-    .add(revealChatBox(chatBubble), 0)
-    .add(revealGraf(trigger), '<1');
+  // Call immediately to set initial hidden states (gsap.set calls inside),
+  // so elements don't flash visible during data-reveal-group animation
+  const grafTl = revealGraf(trigger);
+  const chatTl = revealChatBox(chatBubble);
+
+  const master = gsap.timeline({
+    paused: true,
+  });
+  master.add(chatTl, 0).add(grafTl, '<1');
+
+  ScrollTrigger.create({
+    trigger,
+    start: 'top 80%',
+    once: true,
+    onEnter: () => master.play(),
+  });
 });
