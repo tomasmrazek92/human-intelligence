@@ -181,18 +181,26 @@ export function initContentRevealScroll() {
     ease: 'cubic-bezier(0.38, 0.005, 0.215, 1)',
   };
 
-  const fromState = {
-    ...(isMobile ? {} : { yPercent: CONFIG.from.yPercent }),
-    autoAlpha: 0,
-    filter: `blur(${CONFIG.from.blur}px)`,
-  };
-  const toState = {
-    ...(isMobile ? {} : { yPercent: 0 }),
-    autoAlpha: 1,
-    filter: 'blur(0px)',
-    duration: CONFIG.duration,
-    ease: CONFIG.ease,
-  };
+  const HEADING_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+
+  function getFromState(el) {
+    const useBlur = !isMobile || HEADING_TAGS.has(el.tagName);
+    return {
+      ...(isMobile ? {} : { yPercent: CONFIG.from.yPercent }),
+      autoAlpha: 0,
+      ...(useBlur ? { filter: `blur(${CONFIG.from.blur}px)` } : {}),
+    };
+  }
+  function getToState(el) {
+    const useBlur = !isMobile || HEADING_TAGS.has(el.tagName);
+    return {
+      ...(isMobile ? {} : { yPercent: 0 }),
+      autoAlpha: 1,
+      ...(useBlur ? { filter: 'blur(0px)' } : {}),
+      duration: CONFIG.duration,
+      ease: CONFIG.ease,
+    };
+  }
 
   const ctx = gsap.context(() => {
     document.querySelectorAll('[data-reveal-group]').forEach((groupEl) => {
@@ -213,14 +221,14 @@ export function initContentRevealScroll() {
           !el.querySelector('[data-anim="dots"], [data-anim="graph-base"], [data-anim="graph-mask"]')
       );
       if (!directChildren.length) {
-        gsap.set(groupEl, fromState);
+        gsap.set(groupEl, getFromState(groupEl));
         ScrollTrigger.create({
           trigger: groupEl,
           start: triggerStart,
           once: true,
           onEnter: () =>
             gsap.to(groupEl, {
-              ...toState,
+              ...getToState(groupEl),
               onComplete: () => gsap.set(groupEl, { clearProps: 'all' }),
             }),
         });
@@ -247,12 +255,12 @@ export function initContentRevealScroll() {
       // Initial hidden state
       slots.forEach((slot) => {
         if (slot.type === 'item') {
-          gsap.set(slot.el, fromState);
+          gsap.set(slot.el, getFromState(slot.el));
         } else {
-          if (slot.includeParent) gsap.set(slot.parentEl, fromState);
+          if (slot.includeParent) gsap.set(slot.parentEl, getFromState(slot.parentEl));
           Array.from(slot.nestedEl.children)
             .filter((el) => !el.hasAttribute('data-reveal-skip'))
-            .forEach((target) => gsap.set(target, fromState));
+            .forEach((target) => gsap.set(target, getFromState(target)));
         }
       });
 
@@ -271,7 +279,7 @@ export function initContentRevealScroll() {
               tl.to(
                 slot.el,
                 {
-                  ...toState,
+                  ...getToState(slot.el),
                   onComplete: () => gsap.set(slot.el, { clearProps: 'all' }),
                 },
                 slotTime
@@ -281,7 +289,7 @@ export function initContentRevealScroll() {
                 tl.to(
                   slot.parentEl,
                   {
-                    ...toState,
+                    ...getToState(slot.parentEl),
                     onComplete: () => gsap.set(slot.parentEl, { clearProps: 'all' }),
                   },
                   slotTime
@@ -295,7 +303,7 @@ export function initContentRevealScroll() {
                   tl.to(
                     nestedChild,
                     {
-                      ...toState,
+                      ...getToState(nestedChild),
                       onComplete: () => gsap.set(nestedChild, { clearProps: 'all' }),
                     },
                     slotTime + nestedIndex * nestedStaggerSec
