@@ -173,6 +173,7 @@ export function initScrambleText() {
 
 export function initContentRevealScroll() {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isMobile = window.innerWidth < 992;
 
   const CONFIG = {
     from: { yPercent: 10, blur: 10 },
@@ -181,12 +182,12 @@ export function initContentRevealScroll() {
   };
 
   const fromState = {
-    yPercent: CONFIG.from.yPercent,
+    ...(isMobile ? {} : { yPercent: CONFIG.from.yPercent }),
     autoAlpha: 0,
     filter: `blur(${CONFIG.from.blur}px)`,
   };
   const toState = {
-    yPercent: 0,
+    ...(isMobile ? {} : { yPercent: 0 }),
     autoAlpha: 1,
     filter: 'blur(0px)',
     duration: CONFIG.duration,
