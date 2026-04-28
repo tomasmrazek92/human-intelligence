@@ -1,3 +1,27 @@
+var $body = $(document.body);
+var scrollPosition = 0;
+var isScrollDisabled = false;
+
+export function disableScroll() {
+  if (isScrollDisabled) return;
+  $body.css({
+    overflow: 'hidden',
+    position: 'relative',
+    height: '100%',
+  });
+  isScrollDisabled = true;
+}
+
+export function enableScroll() {
+  if (!isScrollDisabled) return;
+  $body.css({
+    overflow: '',
+    position: '',
+    height: '',
+  });
+  isScrollDisabled = false;
+}
+
 export function initGlobalParallax() {
   const mm = gsap.matchMedia();
 
@@ -218,7 +242,9 @@ export function initContentRevealScroll() {
         (el) =>
           el.nodeType === 1 &&
           !el.hasAttribute('data-reveal-skip') &&
-          !el.querySelector('[data-anim="dots"], [data-anim="graph-base"], [data-anim="graph-mask"]')
+          !el.querySelector(
+            '[data-anim="dots"], [data-anim="graph-base"], [data-anim="graph-mask"]'
+          )
       );
       if (!directChildren.length) {
         gsap.set(groupEl, getFromState(groupEl));
@@ -408,4 +434,66 @@ export function initWhitePaperSwiper() {
     { threshold: 0.3 }
   );
   observer.observe(el);
+}
+
+export function initModalBasic() {
+  const modalGroup = document.querySelector('[data-modal-group-status]');
+  const modals = document.querySelectorAll('[data-modal-name]');
+  const modalTargets = document.querySelectorAll('[data-modal-target]');
+
+  // Open modal
+  modalTargets.forEach((modalTarget) => {
+    modalTarget.addEventListener('click', function () {
+      const modalTargetName = this.getAttribute('data-modal-target');
+
+      // Close all modals
+      modalTargets.forEach((target) => target.setAttribute('data-modal-status', 'not-active'));
+      modals.forEach((modal) => modal.setAttribute('data-modal-status', 'not-active'));
+
+      // Activate clicked modal
+      document
+        .querySelector(`[data-modal-target="${modalTargetName}"]`)
+        .setAttribute('data-modal-status', 'active');
+      document
+        .querySelector(`[data-modal-name="${modalTargetName}"]`)
+        .setAttribute('data-modal-status', 'active');
+
+      // Set group to active
+      if (modalGroup) {
+        modalGroup.setAttribute('data-modal-group-status', 'active');
+      }
+
+      if (typeof lenis !== 'undefined' && lenis) {
+        lenis.stop();
+      } else {
+        disableScroll();
+      }
+    });
+  });
+
+  // Close modal
+  document.querySelectorAll('[data-modal-close]').forEach((closeBtn) => {
+    closeBtn.addEventListener('click', closeAllModals);
+  });
+
+  // Close modal on `Escape` key
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      closeAllModals();
+    }
+  });
+
+  // Function to close all modals
+  function closeAllModals() {
+    modalTargets.forEach((target) => target.setAttribute('data-modal-status', 'not-active'));
+
+    if (modalGroup) {
+      modalGroup.setAttribute('data-modal-group-status', 'not-active');
+    }
+    if (typeof lenis !== 'undefined' && lenis) {
+      lenis.start();
+    } else {
+      enableScroll();
+    }
+  }
 }

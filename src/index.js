@@ -4,6 +4,7 @@ import { initGlobalParallax } from './osmo';
 import { initScrambleText } from './osmo';
 import { initContentRevealScroll } from './osmo';
 import { initHighlightMarkerTextReveal } from './osmo';
+import { initModalBasic } from './osmo';
 import { initPlatformDots } from './platform';
 
 gsap.registerPlugin(SplitText, ScrollTrigger, DrawSVGPlugin);
@@ -23,6 +24,7 @@ window.addEventListener('load', () => {
       runPattern();
       initHighlightMarkerTextReveal();
       initContentRevealScroll();
+      initModalBasic();
     }, 400);
   });
 });
