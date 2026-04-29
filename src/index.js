@@ -564,7 +564,7 @@ function initHomeAnimations(scope) {
 
   if (has('.white-paper_testimonials')) initWhitePaperSwiper(scope);
 
-  // Hero graph
+  // Hero graph — each sub-element gets its own ScrollTrigger
   $scope.find('.claude-dashboard').each(function () {
     const trigger = $(this);
     const chatDashboard = trigger.find('.claude-dashboard_base');
@@ -572,17 +572,71 @@ function initHomeAnimations(scope) {
     const chatResponse = trigger.find('[data-anim="response"]');
     const boxWrap = this.querySelector('.graph-box_wrap');
 
-    const tl = gsap.timeline({ scrollTrigger: { trigger, start: '40 bottom', once: true } });
-    if (boxWrap)
-      tl.to(
-        boxWrap,
-        { autoAlpha: 1, yPercent: 0, duration: 0.55, ease: 'cubic-bezier(0.38, 0.005, 0.215, 1)' },
-        0
-      );
-    tl.from(chatDashboard, { opacity: 0, yPercent: 5 }, 0)
-      .add(revealChatBox(chatBubble))
-      .add(revealResponse(chatResponse), '>-1')
-      .add(revealGraf(trigger), '>-2');
+    // Dashboard base
+    if (chatDashboard.length) {
+      gsap.from(chatDashboard, {
+        opacity: 0,
+        yPercent: 5,
+        scrollTrigger: { trigger: chatDashboard, start: 'top 90%', once: true, markers: true },
+      });
+    }
+
+    // Graph box wrap
+    if (boxWrap) {
+      gsap.set(boxWrap, { autoAlpha: 0, yPercent: 10 });
+      ScrollTrigger.create({
+        trigger: boxWrap,
+        start: 'top 90%',
+        once: true,
+        markers: true,
+        onEnter: () =>
+          gsap.to(boxWrap, {
+            autoAlpha: 1,
+            yPercent: 0,
+            duration: 0.55,
+            ease: 'cubic-bezier(0.38, 0.005, 0.215, 1)',
+          }),
+      });
+    }
+
+    // Chat bubble
+    if (chatBubble.length) {
+      const bubbleTl = revealChatBox(chatBubble);
+      bubbleTl.pause();
+      ScrollTrigger.create({
+        trigger: chatBubble,
+        start: 'top 95%',
+        once: true,
+        markers: true,
+        onEnter: () => bubbleTl.play(),
+      });
+    }
+
+    // Response
+    if (chatResponse.length) {
+      const responseTl = revealResponse(chatResponse);
+      responseTl.pause();
+      ScrollTrigger.create({
+        trigger: chatResponse,
+        start: 'top 95%',
+        once: true,
+        markers: true,
+        onEnter: () => responseTl.play(),
+      });
+    }
+
+    // Graf
+    const grafTl = revealGraf(trigger);
+    grafTl.pause();
+    ScrollTrigger.create({
+      trigger: trigger.find('[data-anim="graph-base"]').length
+        ? trigger.find('[data-anim="graph-base"]')
+        : trigger,
+      start: 'top 90%',
+      once: true,
+      markers: true,
+      onEnter: () => grafTl.play(),
+    });
   });
 
   // Claude Feature
