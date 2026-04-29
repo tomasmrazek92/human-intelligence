@@ -1,28 +1,6 @@
-var $body = $(document.body);
-var scrollPosition = 0;
-var isScrollDisabled = false;
-
-export function disableScroll() {
-  if (isScrollDisabled) return;
-  $body.css({
-    overflow: 'hidden',
-    position: 'relative',
-    height: '100%',
-  });
-  isScrollDisabled = true;
-}
-
-export function enableScroll() {
-  if (!isScrollDisabled) return;
-  $body.css({
-    overflow: '',
-    position: '',
-    height: '',
-  });
-  isScrollDisabled = false;
-}
-
-export function initGlobalParallax() {
+export function initGlobalParallax(nextPage) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const scope = nextPage || document;
   const mm = gsap.matchMedia();
 
   mm.add(
@@ -36,7 +14,7 @@ export function initGlobalParallax() {
       const { isMobile, isMobileLandscape, isTablet } = context.conditions;
 
       const ctx = gsap.context(() => {
-        document.querySelectorAll('[data-parallax="trigger"]').forEach((trigger) => {
+        scope.querySelectorAll('[data-parallax="trigger"]').forEach((trigger) => {
           // Check if this trigger has to be disabled on smaller breakpoints
           const disable = trigger.getAttribute('data-parallax-disable') || 'tablet';
           if (
@@ -94,12 +72,14 @@ export function initGlobalParallax() {
   );
 }
 
-export function initScrambleText() {
+export function initScrambleText(nextPage) {
   if (window.innerWidth < 992) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const scope = nextPage || document;
 
   // Function to reveal stuff on load
   function initScrambleOnLoad() {
-    let targets = document.querySelectorAll('[data-scramble="load"]');
+    let targets = scope.querySelectorAll('[data-scramble="load"]');
 
     targets.forEach((target) => {
       // split into seperate words + letters
@@ -125,7 +105,7 @@ export function initScrambleText() {
 
   // Function to reveal stuff on scroll
   function initScrambleOnScroll() {
-    let targets = document.querySelectorAll('[data-scramble="scroll"]');
+    let targets = scope.querySelectorAll('[data-scramble="scroll"]');
 
     targets.forEach((target) => {
       let split = new SplitText(target, {
@@ -154,7 +134,7 @@ export function initScrambleText() {
   }
 
   function initScrambleOnHover() {
-    let targets = document.querySelectorAll('[data-scramble-hover="link"]');
+    let targets = scope.querySelectorAll('[data-scramble-hover="link"]');
 
     targets.forEach((target) => {
       let textEl = target.querySelector('[data-scramble-hover="target"]');
@@ -195,7 +175,8 @@ export function initScrambleText() {
   initScrambleOnHover();
 }
 
-export function initContentRevealScroll() {
+export function initContentRevealScroll(nextPage) {
+  const scope = nextPage || document;
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const isMobile = window.innerWidth < 992;
 
@@ -227,7 +208,7 @@ export function initContentRevealScroll() {
   }
 
   const ctx = gsap.context(() => {
-    document.querySelectorAll('[data-reveal-group]').forEach((groupEl) => {
+    scope.querySelectorAll('[data-reveal-group]').forEach((groupEl) => {
       const groupStaggerSec = (parseFloat(groupEl.getAttribute('data-stagger')) || 100) / 1000;
       const triggerStart = groupEl.getAttribute('data-start') || 'top 80%';
 
@@ -239,12 +220,7 @@ export function initContentRevealScroll() {
 
       // If no direct children, animate the group element itself
       const directChildren = Array.from(groupEl.children).filter(
-        (el) =>
-          el.nodeType === 1 &&
-          !el.hasAttribute('data-reveal-skip') &&
-          !el.querySelector(
-            '[data-anim="dots"], [data-anim="graph-base"], [data-anim="graph-mask"]'
-          )
+        (el) => el.nodeType === 1 && !el.hasAttribute('data-reveal-skip')
       );
       if (!directChildren.length) {
         gsap.set(groupEl, getFromState(groupEl));
@@ -345,7 +321,8 @@ export function initContentRevealScroll() {
   return () => ctx.revert();
 }
 
-export function initHighlightMarkerTextReveal() {
+export function initHighlightMarkerTextReveal(nextPage) {
+  const scope = nextPage || document;
   const CONFIG = {
     totalDuration: 0.9,
     wordDuration: 0.7,
@@ -357,13 +334,13 @@ export function initHighlightMarkerTextReveal() {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (prefersReduced) {
-    document.querySelectorAll('[data-highlight-marker-reveal]').forEach((el) => {
-      gsap.set(el, { autoAlpha: 1 });
+    scope.querySelectorAll('[data-highlight-marker-reveal]').forEach((el) => {
+      gsap.set(el, { visibility: 'visible', opacity: 1 });
     });
     return;
   }
 
-  const elements = document.querySelectorAll('[data-highlight-marker-reveal]');
+  const elements = scope.querySelectorAll('[data-highlight-marker-reveal]');
   if (!elements.length) return;
 
   elements.forEach((el) => {
@@ -404,8 +381,8 @@ export function initHighlightMarkerTextReveal() {
   });
 }
 
-export function initWhitePaperSwiper() {
-  const el = document.querySelector('.white-paper_testimonials');
+export function initWhitePaperSwiper(nextPage) {
+  const el = (nextPage || document).querySelector('.white-paper_testimonials');
   if (!el) return;
 
   const swiper = new Swiper(el, {
@@ -436,10 +413,11 @@ export function initWhitePaperSwiper() {
   observer.observe(el);
 }
 
-export function initModalBasic() {
-  const modalGroup = document.querySelector('[data-modal-group-status]');
-  const modals = document.querySelectorAll('[data-modal-name]');
-  const modalTargets = document.querySelectorAll('[data-modal-target]');
+export function initModalBasic(nextPage) {
+  const scope = nextPage || document;
+  const modalGroup = scope.querySelector('[data-modal-group-status]');
+  const modals = scope.querySelectorAll('[data-modal-name]');
+  const modalTargets = scope.querySelectorAll('[data-modal-target]');
 
   // Open modal
   modalTargets.forEach((modalTarget) => {
@@ -451,10 +429,10 @@ export function initModalBasic() {
       modals.forEach((modal) => modal.setAttribute('data-modal-status', 'not-active'));
 
       // Activate clicked modal
-      document
+      scope
         .querySelector(`[data-modal-target="${modalTargetName}"]`)
         .setAttribute('data-modal-status', 'active');
-      document
+      scope
         .querySelector(`[data-modal-name="${modalTargetName}"]`)
         .setAttribute('data-modal-status', 'active');
 
@@ -472,7 +450,7 @@ export function initModalBasic() {
   });
 
   // Close modal
-  document.querySelectorAll('[data-modal-close]').forEach((closeBtn) => {
+  scope.querySelectorAll('[data-modal-close]').forEach((closeBtn) => {
     closeBtn.addEventListener('click', closeAllModals);
   });
 

@@ -1,4 +1,6 @@
-export function runSecureMCP() {
+export function runSecureMCP(nextPage) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const scope = nextPage || document;
   // ─────────────────────────────────────────────
   // ANIMATION CONFIG — tweak everything here
   // ─────────────────────────────────────────────
@@ -132,7 +134,7 @@ export function runSecureMCP() {
    */
   const IllustrationAnimation = (() => {
     // Governance group IDs contain special chars — can't use CSS selectors
-    const getGovernanceEl = () => document.querySelector('[id^="governance,roles"]');
+    const getGovernanceEl = () => scope.querySelector('[id^="governance,roles"]');
 
     const hideAll = () => {
       gsap.set(
@@ -374,7 +376,7 @@ export function runSecureMCP() {
           const h = CONFIG.floats.mcpAgents;
           [
             ['#mcp', h.mcp],
-            ['#layer_12', h.layer_12],data-highlight-marker-reveal
+            ['#layer_12', h.layer_12],
             ['#claude', h.claude],
             ['#airtable', h.airtable],
             ['#agent-builder_2', h.agentBuilder],
@@ -401,7 +403,7 @@ export function runSecureMCP() {
       const ids = ['#dotted-line', '#dotted-line_2', '#dotted-line_3', '#dotted-line_4'];
       const tl = gsap.timeline();
 
-      const parents = ids.map((id) => document.querySelector(id)).filter(Boolean);
+      const parents = ids.map((id) => scope.querySelector(id)).filter(Boolean);
       const allPaths = parents.flatMap((el) =>
         el.tagName.toLowerCase() === 'path' ? [el] : [...el.querySelectorAll('path')]
       );
@@ -438,16 +440,16 @@ export function runSecureMCP() {
     const floatTweens = [];
 
     const init = () => {
-      const scope = document.querySelector(CONFIG.scrollTrigger.trigger);
+      const triggerEl = scope.querySelector(CONFIG.scrollTrigger.trigger);
       gsap.context(() => {
-        if (!scope) return;
+        if (!triggerEl) return;
         hideAll();
 
         gsap
           .timeline({
             delay: 1,
             scrollTrigger: {
-              trigger: scope,
+              trigger: triggerEl,
               start: CONFIG.scrollTrigger.start,
               once: true,
             },
@@ -463,8 +465,8 @@ export function runSecureMCP() {
 
         new IntersectionObserver(([entry]) => {
           floatTweens.forEach((t) => (entry.isIntersecting ? t.play() : t.pause()));
-        }).observe(scope);
-      }, scope);
+        }).observe(triggerEl);
+      }, triggerEl);
     };
 
     return { init };

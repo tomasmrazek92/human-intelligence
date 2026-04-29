@@ -14,16 +14,23 @@ import { pausePatterns, resumePatterns } from './pattern';
 const GRAY_DUR_MIN = 2; // seconds — slowest gray rect flicker cycle
 const GRAY_DUR_MAX = 5; // seconds — fastest gray rect flicker cycle
 const GROUP_DUR = 3; // seconds — purple group breathe cycle
-const GROUP_SPREAD = 3; // seconds — total stagger spread across all groups
+const GROUP_SPREAD = 20; // seconds — total stagger spread across all groups
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function initPlatformDots(selector = '[data-dots="platform"]') {
+export function initPlatformDots(nextPage, selector = '[data-anim="platform-dots"]') {
   if (window.innerWidth < 992) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const scope = nextPage || document;
 
-  const svg = document.querySelector(selector);
+  const svg = scope.querySelector(selector);
   if (!svg) return;
 
+  // Prevent duplicate style injection on re-init (Barba transitions)
+  if (document.getElementById('platform-dots-style')) {
+    document.getElementById('platform-dots-style').remove();
+  }
   const style = document.createElement('style');
+  style.id = 'platform-dots-style';
   style.textContent = `
     @keyframes platform-gray-flicker {
       0%, 100% { opacity: var(--op-lo); }
@@ -35,13 +42,13 @@ export function initPlatformDots(selector = '[data-dots="platform"]') {
       50%       { opacity: 0.2; }
     }
 
-    [data-dots="platform"] #gray-side rect {
+    [data-anim="platform-dots"] #gray-side rect {
       animation: platform-gray-flicker var(--dur) ease-in-out infinite;
       animation-play-state: paused;
     }
 
-    [data-dots="platform"] #purple-side g[id^="group-"],
-    [data-dots="platform"] #purple-side g[id^="group_"] {
+    [data-anim="platform-dots"] #purple-side g[id^="group-"],
+    [data-anim="platform-dots"] #purple-side g[id^="group_"] {
       transform-box: fill-box;
       transform-origin: center;
       animation: platform-group-breathe ${GROUP_DUR}s ease-in-out infinite;
@@ -86,19 +93,9 @@ export function initPlatformDots(selector = '[data-dots="platform"]') {
     }).observe(svg);
   };
 
-  // Wait for the platform illustration reveal to finish before showing dots.
-  // Falls back to immediate start if the illustration doesn't exist on this page.
-  if (document.querySelector('[data-anim="platform"]')) {
-    gsap.set(svg, { autoAlpha: 0 });
-    window.addEventListener(
-      'platform-illustration-complete',
-      () => {
-        gsap.to(svg, { autoAlpha: 1, duration: 0.6, ease: 'power2.out' });
-        attachObserver();
-      },
-      { once: true }
-    );
-  } else {
-    attachObserver();
-  }
+  // Start running immediately, delay observer so it doesn't pause during transition
+  svg.querySelectorAll(els).forEach((el) => {
+    el.style.animationPlayState = 'running';
+  });
+  setTimeout(attachObserver, 2000);
 }

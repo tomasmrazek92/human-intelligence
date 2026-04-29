@@ -295,10 +295,11 @@ function initScroll(wrapperEl) {
   ).observe(wrapperEl);
 }
 
-export function runPattern() {
+export function runPattern(nextPage) {
   if (window.innerWidth < 992) return;
+  const scope = nextPage || document;
 
-  $('[data-pattern]').each(function () {
+  $('[data-pattern]', scope).each(function () {
     const mode = $(this).data('pattern');
     const ccClass = [...this.classList].find((c) => c.startsWith('cc-'));
 
@@ -318,16 +319,23 @@ export function runPattern() {
       const maskStyle = `mask-image: ${masks.join(', ')}; mask-composite: ${composites || 'add'};`;
 
       const secondSvg = entry.apps
-        ? `<svg data-svg="apps"       style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${normalizeSvgSize(entry.apps)}</svg>`
-        : `<svg data-svg="highlight"  style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${normalizeSvgSize(entry.highlight)}</svg>`;
+        ? `<svg data-svg="apps"       style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${normalizeSvgSize(
+            entry.apps
+          )}</svg>`
+        : `<svg data-svg="highlight"  style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${normalizeSvgSize(
+            entry.highlight
+          )}</svg>`;
 
       this.style.contentVisibility = 'auto';
       $(this).html(`
-        <svg data-svg="base" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;${maskStyle}">${normalizeSvgSize(entry.base)}</svg>
+        <svg data-svg="base" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;${maskStyle}">${normalizeSvgSize(
+        entry.base
+      )}</svg>
         ${secondSvg}
       `);
     }
 
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     if (mode === 'pulse') initPulse(this);
     else if (mode === 'scroll') initScroll(this);
   });

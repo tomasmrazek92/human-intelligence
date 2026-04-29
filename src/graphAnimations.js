@@ -4,10 +4,13 @@
  * Import what you need; wire into a page sequence in a separate file.
  */
 
+const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 // ─── Utility ─────────────────────────────────────────────────────────────────
 
 export function typeText(element, duration = 0.5, delay = 0) {
   if (window.innerWidth < 992) return;
+  if (prefersReducedMotion()) return gsap.timeline();
   const split = new SplitText(element, { type: 'words', linesClass: 'split-line' });
   if (!split.words.length) return;
   gsap.set(split.words, { visibility: 'hidden' });
@@ -51,6 +54,7 @@ export function revealDotGrid({
   revealDur = 0.2,
   container = null,
 } = {}) {
+  if (prefersReducedMotion()) return gsap.timeline();
   const scope = container || document;
 
   // ── Chart chrome ───────────────────────────────────────────────────────────
@@ -132,6 +136,7 @@ export function revealChatBox(
   el,
   { labelSelector = '[data-anim="chat-label"]', stagger = 0.15 } = {}
 ) {
+  if (prefersReducedMotion()) return gsap.timeline();
   const els = $(el).toArray();
   const tl = gsap.timeline();
 
@@ -172,6 +177,7 @@ export function revealChatBox(
  *   logoStagger   seconds between each source logo (default: 0.08)
  */
 export function revealResponse(el, { typeDuration = 1.2, logoStagger = 0.08 } = {}) {
+  if (prefersReducedMotion()) return gsap.timeline();
   const $el = $(el);
   const $head = $el.find('[data-anim="response-head"]');
   const $text = $el.find('[data-anim="response-text"]');
@@ -245,6 +251,7 @@ export function revealResponse(el, { typeDuration = 1.2, logoStagger = 0.08 } = 
  *   meta   data-anim="thinking-label"  child label that slides away (optional)
  */
 export function revealThinking(el) {
+  if (prefersReducedMotion()) return gsap.timeline();
   const $meta = $(el).find('[data-anim="thinking-label"]');
 
   gsap.set(el, { opacity: 0, x: '-1rem', filter: 'blur(8px)' });
@@ -267,6 +274,7 @@ export function revealThinking(el) {
  *   text    data-anim="text"     inner text for typeText (optional)
  */
 export function revealItem(el) {
+  if (prefersReducedMotion()) return gsap.timeline();
   const $image = $(el).find('[data-anim="image"]');
 
   gsap.set(el, { opacity: 0, y: '3rem', filter: 'blur(8px)' });
@@ -307,10 +315,12 @@ export function revealItem(el) {
  *   label          data-anim="label"
  */
 export function revealGraf(el) {
+  if (prefersReducedMotion()) return gsap.timeline();
   const $el = $(el);
   const tl = gsap.timeline();
 
   const $base = $el.find('[data-anim="graph-base"]');
+
   const $dots = $el.find('[data-anim="dots"]').find('path, circle');
   const $mask = $el.find('[data-anim="graph-mask"]');
   const $chart = $el.find('[data-anim="chart"]');
@@ -338,7 +348,8 @@ export function revealGraf(el) {
   const baseRows = base ? [...base.querySelectorAll('[id^="row_"]')] : [];
 
   // If graph-base exists but has no recognised children, treat the whole element as a unit
-  const baseHasKnownChildren = grid || labelsY.length || labelsX.length || legend.length || baseRows.length;
+  const baseHasKnownChildren =
+    grid || labelsY.length || labelsX.length || legend.length || baseRows.length;
 
   if (base && !baseHasKnownChildren) {
     gsap.set(base, { autoAlpha: 0 });
@@ -542,6 +553,7 @@ export function revealGraf(el) {
  *   table-row  data-anim="table-row"   individual rows
  */
 export function revealTable(el) {
+  if (prefersReducedMotion()) return gsap.timeline();
   const $table = $(el).find('[data-anim="table"]');
   const $rows = $table.find('[data-anim="table-row"]');
   const tl = gsap.timeline();
@@ -576,6 +588,7 @@ export function revealTable(el) {
  *   el   data-anim="platform"   the .platform-illustrations_base wrapper
  */
 export function revealPlatformIllustration(el) {
+  if (prefersReducedMotion()) return gsap.timeline();
   const $el = $(el);
   const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
@@ -592,12 +605,13 @@ export function revealPlatformIllustration(el) {
   const staticBase = $el.find('[data-anim="platform-dots"]')[0];
 
   // ── Initial hidden state ────────────────────────────────────────────────────
-  gsap.set([logo, options, human, queryBox].filter(Boolean), { autoAlpha: 0, y: 20 });
-  gsap.set(labels, { autoAlpha: 0, y: 8 });
-  gsap.set(agentBoxes, { autoAlpha: 0, y: 24 });
-  gsap.set(serviceBoxes, { autoAlpha: 0, y: 20 });
-  gsap.set(baseBoxes, { autoAlpha: 0, y: 16 });
-  gsap.set(staticBase, { autoAlpha: 0 });
+  const mainEls = [logo, options, human, queryBox].filter(Boolean);
+  if (mainEls.length) gsap.set(mainEls, { autoAlpha: 0, y: 20 });
+  if (labels.length) gsap.set(labels, { autoAlpha: 0, y: 8 });
+  if (agentBoxes.length) gsap.set(agentBoxes, { autoAlpha: 0, y: 24 });
+  if (serviceBoxes.length) gsap.set(serviceBoxes, { autoAlpha: 0, y: 20 });
+  if (baseBoxes.length) gsap.set(baseBoxes, { autoAlpha: 0, y: 16 });
+  if (staticBase) gsap.set(staticBase, { autoAlpha: 0 });
   // ─────────────────────────────────────────────────────────────────────────────
 
   // 1. Base integration boxes
