@@ -577,7 +577,7 @@ function initHomeAnimations(scope) {
       gsap.from(chatDashboard, {
         opacity: 0,
         yPercent: 5,
-        scrollTrigger: { trigger: chatDashboard, start: 'top 90%', once: true, markers: true },
+        scrollTrigger: { trigger: chatDashboard, start: 'top 90%', once: true },
       });
     }
 
@@ -588,7 +588,7 @@ function initHomeAnimations(scope) {
         trigger: boxWrap,
         start: 'top 90%',
         once: true,
-        markers: true,
+
         onEnter: () =>
           gsap.to(boxWrap, {
             autoAlpha: 1,
@@ -607,7 +607,7 @@ function initHomeAnimations(scope) {
         trigger: chatBubble,
         start: 'top 95%',
         once: true,
-        markers: true,
+
         onEnter: () => bubbleTl.play(),
       });
     }
@@ -620,7 +620,7 @@ function initHomeAnimations(scope) {
         trigger: chatResponse,
         start: 'top 95%',
         once: true,
-        markers: true,
+
         onEnter: () => responseTl.play(),
       });
     }
