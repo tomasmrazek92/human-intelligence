@@ -317,9 +317,13 @@ export function runPattern(nextPage) {
       const hasOverlay = !!(entry.apps || entry.highlight);
 
       let maskStyle = '';
-      if (hasOverlay) {
-        const edgeMaskH = `linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%)`;
-        const edgeMaskV = `linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%)`;
+      if (entry.mask || hasOverlay) {
+        const edgeMaskH = hasOverlay
+          ? `linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%)`
+          : null;
+        const edgeMaskV = hasOverlay
+          ? `linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%)`
+          : null;
         const masks = [entry.mask?.replace(/;+$/, ''), edgeMaskH, edgeMaskV].filter(Boolean);
         const composites = Array(masks.length - 1)
           .fill('intersect')

@@ -18207,7 +18207,7 @@ export const SVG_PATTERNS = {
 </defs>
 </svg>
 `,
-    mask: `radial-gradient(83.8% 88.18% at 70.24% 42.74%, #1C1E1F 0%, rgba(18, 20, 22, 0) 100%);
+    mask: `radial-gradient(55.29% 42.74% at 70.24% 42.74%, #1C1E1F 0%, rgba(18, 20, 22, 0) 100%);;
 `,
   },
 };
