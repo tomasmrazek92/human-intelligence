@@ -168,10 +168,12 @@ function startHighlightPulse(highlightPaths, wrapperEl) {
 function buildPulseIn(wrapperEl, { paused = false } = {}) {
   const baseSvg = wrapperEl.querySelector('[data-svg="base"]');
   const highlightSvg = wrapperEl.querySelector('[data-svg="highlight"]');
-  if (!baseSvg || !highlightSvg) return;
+  if (!baseSvg) return;
 
   const basePaths = sortFromCenter(baseSvg.querySelectorAll('path'), baseSvg);
-  const highlightPaths = sortFromCenter(highlightSvg.querySelectorAll('path'), highlightSvg);
+  const highlightPaths = highlightSvg
+    ? sortFromCenter(highlightSvg.querySelectorAll('path'), highlightSvg)
+    : [];
 
   // Pre-hide all paths immediately so highlight paths don't flash visible
   // before their tween fires (fromTo at position > 0 has immediateRender: false)
@@ -193,10 +195,12 @@ function buildPulseIn(wrapperEl, { paused = false } = {}) {
   });
 
   tl.fromTo(basePaths, from(), to());
-  tl.fromTo(highlightPaths, from(), to(), DURATION - HIGHLIGHT_OVERLAP);
+  if (highlightPaths.length) {
+    tl.fromTo(highlightPaths, from(), to(), DURATION - HIGHLIGHT_OVERLAP);
+  }
   tl.call(() => {
     gsap.set([...basePaths, ...highlightPaths], { clearProps: 'all' });
-    startHighlightPulse(highlightPaths, wrapperEl);
+    if (highlightPaths.length) startHighlightPulse(highlightPaths, wrapperEl);
   });
 
   return tl;
@@ -310,21 +314,28 @@ export function runPattern(nextPage) {
         console.warn(`[pattern] No SVG found for key "${ccClass}"`);
         return;
       }
-      const edgeMaskH = `linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%)`;
-      const edgeMaskV = `linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%)`;
-      const masks = [entry.mask?.replace(/;+$/, ''), edgeMaskH, edgeMaskV].filter(Boolean);
-      const composites = Array(masks.length - 1)
-        .fill('intersect')
-        .join(', ');
-      const maskStyle = `mask-image: ${masks.join(', ')}; mask-composite: ${composites || 'add'};`;
+      const hasOverlay = !!(entry.apps || entry.highlight);
+
+      let maskStyle = '';
+      if (hasOverlay) {
+        const edgeMaskH = `linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%)`;
+        const edgeMaskV = `linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%)`;
+        const masks = [entry.mask?.replace(/;+$/, ''), edgeMaskH, edgeMaskV].filter(Boolean);
+        const composites = Array(masks.length - 1)
+          .fill('intersect')
+          .join(', ');
+        maskStyle = `mask-image: ${masks.join(', ')}; mask-composite: ${composites || 'add'};`;
+      }
 
       const secondSvg = entry.apps
         ? `<svg data-svg="apps"       style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${normalizeSvgSize(
             entry.apps
           )}</svg>`
-        : `<svg data-svg="highlight"  style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${normalizeSvgSize(
+        : entry.highlight
+        ? `<svg data-svg="highlight"  style="position:absolute;inset:0;width:100%;height:100%;z-index:2">${normalizeSvgSize(
             entry.highlight
-          )}</svg>`;
+          )}</svg>`
+        : '';
 
       this.style.contentVisibility = 'auto';
       $(this).html(`
