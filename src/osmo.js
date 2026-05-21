@@ -266,7 +266,37 @@ export function initContentRevealScroll(nextPage) {
         }
       });
 
-      // Reveal sequence
+      // Mobile: per-child triggers (vertical layout means many children sit
+      // below the fold when the group enters viewport — without per-child
+      // triggers their reveal would play unseen)
+      if (isMobile) {
+        const revealEl = (el) => {
+          ScrollTrigger.create({
+            trigger: el,
+            start: triggerStart,
+            once: true,
+            onEnter: () =>
+              gsap.to(el, {
+                ...getToState(el),
+                onComplete: () => gsap.set(el, { clearProps: 'all' }),
+              }),
+          });
+        };
+
+        slots.forEach((slot) => {
+          if (slot.type === 'item') {
+            revealEl(slot.el);
+          } else {
+            if (slot.includeParent) revealEl(slot.parentEl);
+            Array.from(slot.nestedEl.children)
+              .filter((el) => !el.hasAttribute('data-reveal-skip'))
+              .forEach(revealEl);
+          }
+        });
+        return;
+      }
+
+      // Desktop: single group trigger drives a staggered timeline
       ScrollTrigger.create({
         trigger: groupEl,
         start: triggerStart,

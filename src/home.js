@@ -49,17 +49,12 @@ $('[data-anim="chat-feature"]').each(function () {
 });
 
 // ── Dashboard illustration (hero) ───────────────────────────────────────────
-console.log('[dashboard] gsap loaded?', typeof gsap, 'ScrollTrigger loaded?', typeof ScrollTrigger);
-console.log('[dashboard] matched count:', $('[data-anim="dashboard"]').length);
-console.log('[dashboard] .home-hero_visuals count:', $('.home-hero_visuals').length);
-
+// Plays on page load — no ScrollTrigger needed since this is hero content
+// always in view. Timeline is built paused so all tweens are in place before
+// we call .play() (avoids the empty-timeline-completes-instantly bug).
 $('[data-anim="dashboard"]').each(function () {
-  console.log('[dashboard] each fired', this);
   const $el = $(this);
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    console.log('[dashboard] reduced motion — bailing');
-    return;
-  }
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   const dashboardImg = $el.find('.home-hero_dashboard-img')[0];
   const sidebar = $el.find('#sidebar')[0];
@@ -71,15 +66,6 @@ $('[data-anim="dashboard"]').each(function () {
   const $optionRows = $('.home-hero_options-row');
   const optionsRow1 = $optionRows.eq(0).find('.home-hero_options-item').toArray();
   const optionsRow2 = $optionRows.eq(1).find('.home-hero_options-item').toArray();
-
-  console.log('[dashboard] found:', {
-    sidebar: !!sidebar,
-    tabs: tabs.length,
-    title: !!title,
-    search: !!search,
-    optionsRow1: optionsRow1.length,
-    optionsRow2: optionsRow2.length,
-  });
 
   const rows = [
     {
@@ -111,18 +97,15 @@ $('[data-anim="dashboard"]').each(function () {
   if (search) gsap.set(search, { autoAlpha: 0, y: -15 });
   if (allRowEls.length) gsap.set(allRowEls, { autoAlpha: 0 });
   if (allHeads.length) gsap.set(allHeads, { autoAlpha: 0 });
-  if (leftCards.length) gsap.set(leftCards, { autoAlpha: 0, x: -40 });
-  if (rightCards.length) gsap.set(rightCards, { autoAlpha: 0, x: 40 });
+  if (leftCards.length) gsap.set(leftCards, { autoAlpha: 0, x: -30 });
+  if (rightCards.length) gsap.set(rightCards, { autoAlpha: 0, x: 30 });
   if (optionsRow1.length) gsap.set(optionsRow1, { autoAlpha: 0, x: -50 });
   if (optionsRow2.length) gsap.set(optionsRow2, { autoAlpha: 0, x: 50 });
   if (dashboardImg) gsap.set(dashboardImg, { autoAlpha: 0, y: 20 });
 
-  console.log('[dashboard] building paused timeline...');
   const tl = gsap.timeline({
     paused: true,
     defaults: { ease: 'back.out(1.4)' },
-    onStart: () => console.log('[dashboard] timeline onStart'),
-    onComplete: () => console.log('[dashboard] timeline onComplete'),
   });
 
   // 0a. Dashboard SVG wrapper fades up first
@@ -160,26 +143,21 @@ $('[data-anim="dashboard"]').each(function () {
   // 4. Search drops from above
   if (search) tl.to(search, { autoAlpha: 1, y: 0, duration: 0.3 }, '>-0.15');
 
-  // 5–7. Rows: container shows, header fades, cards slide in from opposite sides
-  rows.forEach(({ row, head, cards }) => {
-    if (row) tl.set(row, { autoAlpha: 1 });
-    if (head) tl.to(head, { autoAlpha: 1, duration: 0.15, ease: 'power2.out' }, '>-0.05');
+  // 5–7. Rows: each row's reveal cascades 0.12s after the previous row begins
+  rows.forEach(({ row, head, cards }, i) => {
+    const rowStart = i === 0 ? '>-0.1' : '<+=0.12';
+    if (row) tl.set(row, { autoAlpha: 1 }, rowStart);
+    if (head) tl.to(head, { autoAlpha: 1, duration: 0.15, ease: 'power2.out' }, '<');
     if (cards.length) {
       tl.to(
         cards,
-        { autoAlpha: 1, x: 0, duration: 0.3, stagger: 0.04, ease: 'power3.out' },
-        '>-0.15'
+        { autoAlpha: 1, x: 0, duration: 0.5, stagger: 0.04, ease: 'power3.out' },
+        '<0.05'
       );
     }
   });
 
-  console.log('[dashboard] timeline built — duration:', tl.duration(), '— attaching ScrollTrigger');
-  ScrollTrigger.create({
-    trigger: '.home-hero_visuals',
-    start: 'bottom bottom',
-    once: true,
-    onEnter: () => tl.play(),
-  });
+  tl.play();
 });
 
 // ── Platform illustration ───────────────────────────────────────────────────

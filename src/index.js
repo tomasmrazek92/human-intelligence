@@ -531,25 +531,81 @@ function initVisuals(nextPage) {
 }
 
 function initAccordionCSS(scope) {
+  let acIdSeq = 0;
+  const uid = (prefix) => `${prefix}-${++acIdSeq}`;
+
   scope.querySelectorAll('[data-accordion-css-init]').forEach((accordion) => {
     const closeSiblings = accordion.getAttribute('data-accordion-close-siblings') === 'true';
+
+    // ── ARIA scaffolding: turn each item into a real disclosure widget ──────
+    accordion.querySelectorAll('[data-accordion-status]').forEach((item) => {
+      const toggle = item.querySelector('[data-accordion-toggle]');
+      if (!toggle) return;
+      const panel = Array.from(item.children).find((c) => c !== toggle);
+      if (!panel) return;
+
+      // Panel: needs an id so the toggle can reference it
+      if (!panel.id) panel.id = uid('accordion-panel');
+      panel.setAttribute('role', 'region');
+
+      // Heading inside toggle: id so the panel can reference it
+      const heading = toggle.querySelector('h1, h2, h3, h4, h5, h6');
+      if (heading) {
+        if (!heading.id) heading.id = uid('accordion-heading');
+        panel.setAttribute('aria-labelledby', heading.id);
+      }
+
+      // Toggle: make it behave as a button (it's a <div>, not <button>)
+      if (!toggle.hasAttribute('role')) toggle.setAttribute('role', 'button');
+      if (!toggle.hasAttribute('tabindex')) toggle.setAttribute('tabindex', '0');
+      toggle.setAttribute('aria-controls', panel.id);
+      const isActiveInit = item.getAttribute('data-accordion-status') === 'active';
+      toggle.setAttribute('aria-expanded', isActiveInit ? 'true' : 'false');
+
+      // Decorative icon shouldn't be announced
+      const icon = toggle.querySelector('.faqs-item_icon, [data-accordion-icon]');
+      if (icon) icon.setAttribute('aria-hidden', 'true');
+    });
+
+    const syncAria = (item) => {
+      const toggle = item.querySelector('[data-accordion-toggle]');
+      if (!toggle) return;
+      const isActive = item.getAttribute('data-accordion-status') === 'active';
+      toggle.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+    };
+
+    const toggleItem = (item) => {
+      const isActive = item.getAttribute('data-accordion-status') === 'active';
+      item.setAttribute('data-accordion-status', isActive ? 'not-active' : 'active');
+      syncAria(item);
+
+      if (closeSiblings && !isActive) {
+        accordion.querySelectorAll('[data-accordion-status="active"]').forEach((sibling) => {
+          if (sibling !== item) {
+            sibling.setAttribute('data-accordion-status', 'not-active');
+            syncAria(sibling);
+          }
+        });
+      }
+    };
 
     accordion.addEventListener('click', (event) => {
       const toggle = event.target.closest('[data-accordion-toggle]');
       if (!toggle) return;
+      const item = toggle.closest('[data-accordion-status]');
+      if (!item) return;
+      toggleItem(item);
+    });
 
-      const singleAccordion = toggle.closest('[data-accordion-status]');
-      if (!singleAccordion) return;
-
-      const isActive = singleAccordion.getAttribute('data-accordion-status') === 'active';
-      singleAccordion.setAttribute('data-accordion-status', isActive ? 'not-active' : 'active');
-
-      if (closeSiblings && !isActive) {
-        accordion.querySelectorAll('[data-accordion-status="active"]').forEach((sibling) => {
-          if (sibling !== singleAccordion)
-            sibling.setAttribute('data-accordion-status', 'not-active');
-        });
-      }
+    // Keyboard: Enter or Space on the toggle activates it (since it's a <div>)
+    accordion.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const toggle = event.target.closest('[data-accordion-toggle]');
+      if (!toggle) return;
+      event.preventDefault(); // stop Space from scrolling
+      const item = toggle.closest('[data-accordion-status]');
+      if (!item) return;
+      toggleItem(item);
     });
   });
 }
