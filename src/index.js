@@ -277,10 +277,10 @@ function pixelGrid(isPortrait) {
     }
   });
 
-  // Pixel colors: mostly dark with occasional lighter accent pixels
+  // Pixel colors: mostly white with occasional darker accent pixels
   const colorChance = 0.05;
-  const baseColor = '#121416';
-  const accentColor = '#1c1e1f';
+  const baseColor = '#ffffff';
+  const accentColor = '#e4e8f1';
   const allPx = panel.querySelectorAll('[data-transition-pixel]');
 
   allPx.forEach((px) => {

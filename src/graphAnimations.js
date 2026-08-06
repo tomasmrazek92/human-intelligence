@@ -419,14 +419,26 @@ export function revealGraf(el) {
   }
 
   if ($dots.length) {
+    // ~300 dots. Two knobs, and they interact:
+    //   DOTS_SPREAD   total seconds the whole field takes to come in
+    //   DOTS_DURATION how long one dot's pop lasts
+    // Dots in flight at any instant = DOTS_DURATION / stagger, i.e.
+    // DOTS_DURATION × count ÷ DOTS_SPREAD. Shortening only the spread makes it
+    // faster but puts MORE on screen at once, so the per-dot duration has to
+    // come down harder than the spread does.
+    //   before: 1.0s spread, 0.15s pop → 1.15s total, ~45 dots animating at once
+    //   now:    0.5s spread, 0.06s pop → 0.56s total, ~36 at once
+    const DOTS_SPREAD = 0.5;
+    const DOTS_DURATION = 0.06;
+
     const shuffled = gsap.utils.shuffle([...$dots]);
     if ($dotsContainer.length) tl.set($dotsContainer, { autoAlpha: 1 }, '-=0.2');
     tl.to(
       shuffled,
       {
         scale: 1,
-        duration: 0.15,
-        stagger: $dots.length > 0 ? 1 / $dots.length : 0.03,
+        duration: DOTS_DURATION,
+        stagger: $dots.length > 0 ? DOTS_SPREAD / $dots.length : 0.03,
         ease: 'back.out(2)',
       },
       '<'

@@ -237,34 +237,66 @@ export function initContentRevealScroll(nextPage) {
         return;
       }
 
-      // Build animation slots: item or nested
-      const slots = [];
-      directChildren.forEach((child) => {
-        const nestedGroup = child.matches('[data-reveal-group-nested]')
-          ? child
-          : child.querySelector(':scope [data-reveal-group-nested]');
+      // Collect reveal entries by walking the group tree RECURSIVELY, so the
+      // stagger cascades through ANY depth of nested groups. The old builder
+      // only descended one level: a [data-reveal-group-nested] inside another
+      // one had its children treated as a single flat slot, so they all fired
+      // together instead of cascading. Each nested group now descends a level —
+      // its children stagger by its own data-stagger (fallback: the parent's)
+      // starting at that nested group's own slot time.
+      //
+      //   data-reveal-skip / data-ignore="true" → skip the element AND its subtree
+      //   data-ignore="false" on a nested group → ALSO reveal the wrapper itself
+      //                                           (default: children only)
+      const staggerOf = (el, fallback) => {
+        const ms = parseFloat(el.getAttribute('data-stagger'));
+        return isNaN(ms) ? fallback : ms / 1000;
+      };
+      const isSkipped = (el) =>
+        el.hasAttribute('data-reveal-skip') || el.getAttribute('data-ignore') === 'true';
 
-        if (nestedGroup) {
-          const includeParent =
-            child.getAttribute('data-ignore') === 'false' ||
-            nestedGroup.getAttribute('data-ignore') === 'false';
-          slots.push({ type: 'nested', parentEl: child, nestedEl: nestedGroup, includeParent });
-        } else {
-          slots.push({ type: 'item', el: child });
-        }
-      });
+      const wrapsNestedGroup = (el) => !!el.querySelector('[data-reveal-group-nested]');
+
+      const entries = []; // flat, time-ordered list: { el, time }
+      const walk = (group, baseTime, stagger) => {
+        let slot = 0;
+        Array.from(group.children).forEach((child) => {
+          if (child.nodeType !== 1 || isSkipped(child)) return;
+
+          const time = baseTime + slot * stagger;
+          slot += 1;
+
+          const isNested = child.matches('[data-reveal-group-nested]');
+          // A plain element that happens to contain a nested group somewhere
+          // below it. Treated as TRANSPARENT: we descend through it so its own
+          // children each get a beat, but the wrapper's box isn't animated.
+          //
+          // This is the part that has to be recursive rather than a search for
+          // nested groups. A wrapper holds a mix — some children are nested
+          // groups, some are just content (a heading block next to a quote
+          // card). Hunting only for the groups reaches the groups and silently
+          // drops every plain sibling, which never gets hidden or revealed.
+          const isWrapper = !isNested && wrapsNestedGroup(child);
+
+          if (isNested || isWrapper) {
+            // data-ignore="false" opts the element itself into the reveal, on
+            // top of the cascade running through its children.
+            if (child.getAttribute('data-ignore') === 'false') {
+              entries.push({ el: child, time });
+            }
+            // A nested group restarts the stagger with its own data-stagger;
+            // a transparent wrapper just carries the current one down.
+            walk(child, time, isNested ? staggerOf(child, stagger) : stagger);
+            return;
+          }
+
+          entries.push({ el: child, time });
+        });
+      };
+      walk(groupEl, 0, groupStaggerSec);
 
       // Initial hidden state
-      slots.forEach((slot) => {
-        if (slot.type === 'item') {
-          gsap.set(slot.el, getFromState(slot.el));
-        } else {
-          if (slot.includeParent) gsap.set(slot.parentEl, getFromState(slot.parentEl));
-          Array.from(slot.nestedEl.children)
-            .filter((el) => !el.hasAttribute('data-reveal-skip'))
-            .forEach((target) => gsap.set(target, getFromState(target)));
-        }
-      });
+      entries.forEach(({ el }) => gsap.set(el, getFromState(el)));
 
       // Mobile: per-child triggers (vertical layout means many children sit
       // below the fold when the group enters viewport — without per-child
@@ -283,16 +315,10 @@ export function initContentRevealScroll(nextPage) {
           });
         };
 
-        slots.forEach((slot) => {
-          if (slot.type === 'item') {
-            revealEl(slot.el);
-          } else {
-            if (slot.includeParent) revealEl(slot.parentEl);
-            Array.from(slot.nestedEl.children)
-              .filter((el) => !el.hasAttribute('data-reveal-skip'))
-              .forEach(revealEl);
-          }
-        });
+        // Times are irrelevant here — each element waits for its own scroll
+        // position — but the recursive walk still decides WHICH elements
+        // animate, so deep nests are covered on mobile too.
+        entries.forEach(({ el }) => revealEl(el));
         return;
       }
 
@@ -303,45 +329,15 @@ export function initContentRevealScroll(nextPage) {
         once: true,
         onEnter: () => {
           const tl = gsap.timeline();
-
-          slots.forEach((slot, slotIndex) => {
-            const slotTime = slotIndex * groupStaggerSec;
-
-            if (slot.type === 'item') {
-              tl.to(
-                slot.el,
-                {
-                  ...getToState(slot.el),
-                  onComplete: () => gsap.set(slot.el, { clearProps: 'all' }),
-                },
-                slotTime
-              );
-            } else {
-              if (slot.includeParent) {
-                tl.to(
-                  slot.parentEl,
-                  {
-                    ...getToState(slot.parentEl),
-                    onComplete: () => gsap.set(slot.parentEl, { clearProps: 'all' }),
-                  },
-                  slotTime
-                );
-              }
-              const nestedMs = parseFloat(slot.nestedEl.getAttribute('data-stagger'));
-              const nestedStaggerSec = isNaN(nestedMs) ? groupStaggerSec : nestedMs / 1000;
-              Array.from(slot.nestedEl.children)
-                .filter((el) => !el.hasAttribute('data-reveal-skip'))
-                .forEach((nestedChild, nestedIndex) => {
-                  tl.to(
-                    nestedChild,
-                    {
-                      ...getToState(nestedChild),
-                      onComplete: () => gsap.set(nestedChild, { clearProps: 'all' }),
-                    },
-                    slotTime + nestedIndex * nestedStaggerSec
-                  );
-                });
-            }
+          entries.forEach(({ el, time }) => {
+            tl.to(
+              el,
+              {
+                ...getToState(el),
+                onComplete: () => gsap.set(el, { clearProps: 'all' }),
+              },
+              time
+            );
           });
         },
       });
