@@ -40,6 +40,9 @@ const has = (s) => !!nextPage.querySelector(s);
 let staggerDefault = 0.05;
 let durationDefault = 0.6;
 
+// Held at module scope so a re-init (Barba) can disconnect the previous one.
+let tabsResizeObserver = null;
+
 CustomEase.create('osmo', '0.625, 0.05, 0, 1');
 gsap.defaults({ ease: 'osmo', duration: durationDefault });
 
@@ -522,6 +525,7 @@ function initVisuals(nextPage) {
   // Interactions
   if (has('[data-accordion-css-init]')) initAccordionCSS(scope);
   if (has('[data-modal-group-status]')) initModalBasic(nextPage);
+  if (has('[data-tabs-init]')) initDashboardTabs(scope);
 
   // Page-specific animations
   initHomeAnimations(scope);
@@ -886,4 +890,220 @@ function initProductAnimations(scope) {
       onEnter: () => master.play(),
     });
   });
+}
+
+// ── Dashboard tabs ───────────────────────────────────────────────────────────
+// Sidebar list drives a stack of screenshots: clicking a tab crossfades its
+// image in and the rest out. A single pill div is injected behind the list and
+// slides/resizes to whichever item is active.
+//
+// Markup contract (attributes only, no class dependency):
+//   [data-tabs-init]           → component root (wraps both the list and images)
+//   [data-tab-item="key"]      → each clickable sidebar item
+//   [data-tab-image="key"]     → the matching image; keys must line up
+//   [data-tabs-list]           → optional, the element the pill is measured
+//                                against. Defaults to the items' parent.
+//
+// Webflow side: only thing worth styling there is the active state, e.g.
+//   .h-dashboard_list-item[data-state="active"] { color: var(--…); }
+// The icons already use currentColor, so one colour rule covers both.
+function initDashboardTabs(scope) {
+  const root = (scope || document).querySelector('[data-tabs-init]');
+  if (!root) return;
+
+  const items = [...root.querySelectorAll('[data-tab-item]')];
+  const images = [...root.querySelectorAll('[data-tab-image]')];
+  if (!items.length || !images.length) return;
+
+  const list = root.querySelector('[data-tabs-list]') || items[0].parentElement;
+  if (!list) return;
+
+  // Pair each tab with its image by key, falling back to position so a typo'd
+  // key in Webflow (e.g. audit-logs vs audit) degrades to the right image
+  // instead of killing the whole component.
+  const panes = items
+    .map((item, i) => {
+      const key = item.getAttribute('data-tab-item');
+      let img = images.find((el) => el.getAttribute('data-tab-image') === key);
+      if (!img && images[i]) {
+        img = images[i];
+        console.warn(`[tabs] no [data-tab-image="${key}"] — matched by index instead.`);
+      }
+      return { item, img, key };
+    })
+    .filter((p) => p.img);
+  if (!panes.length) return;
+
+  // ── Stack the images so they can crossfade ────────────────────────────────
+  // Normally Webflow already has them absolute; this is just a fallback so the
+  // component still works if that CSS ever goes missing.
+  const stack = images[0].parentElement;
+  if (getComputedStyle(images[0]).position === 'static') {
+    gsap.set(stack, { position: 'relative' });
+    gsap.set(images, { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' });
+  }
+
+  // Take over from the CSS no-flash guard:
+  //   [data-tab-image]:not(:first-child) { display: none; }
+  // That rule stops all eight images stacking up before JS boots, but display
+  // can't be overridden by autoAlpha (which only touches visibility/opacity),
+  // so every non-first image would stay hidden forever. Copy the first image's
+  // computed display onto all of them as an inline style — inline beats the
+  // stylesheet, and reading it rather than hardcoding 'block' keeps whatever
+  // Webflow set. From here on visibility is entirely autoAlpha's job.
+  gsap.set(images, { display: getComputedStyle(images[0]).display, autoAlpha: 0 });
+
+  // ── Moving active pill ────────────────────────────────────────────────────
+  // Injected as a sibling of the <ul>, not a child — a bare <div> inside a
+  // role="list" would break the list semantics for screen readers.
+  const pillHost = list.parentElement;
+  let pill = pillHost.querySelector('[data-tab-pill]');
+  if (!pill) {
+    pill = document.createElement('div');
+    pill.setAttribute('data-tab-pill', '');
+    pill.setAttribute('aria-hidden', 'true');
+    pillHost.insertBefore(pill, list);
+  }
+  // JS owns geometry only — position, size, and the fact that it sits behind
+  // the list. Everything visual (background, radius, shadow, border) is styled
+  // in CSS off [data-tab-pill]. Note GSAP can't set colours from CSS vars: it
+  // parses backgroundColor as a colour, has no var() support, and mangles the
+  // token into a junk rgba() — so colour never belongs in here anyway.
+  gsap.set(pillHost, { position: 'relative' });
+  gsap.set(pill, {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    pointerEvents: 'none',
+    zIndex: 0,
+    autoAlpha: 0,
+  });
+  gsap.set(list, { position: 'relative', zIndex: 1 });
+  items.forEach((el) => gsap.set(el, { cursor: 'pointer' }));
+
+  const measure = (item) => {
+    const a = item.getBoundingClientRect();
+    const b = pillHost.getBoundingClientRect();
+    return {
+      x: a.left - b.left + pillHost.scrollLeft,
+      y: a.top - b.top + pillHost.scrollTop,
+      width: a.width,
+      height: a.height,
+    };
+  };
+
+  // Last geometry written to the pill, so the ResizeObserver below can drop
+  // callbacks that wouldn't move anything.
+  let lastBox = '';
+  const boxKey = (b) => `${b.x}|${b.y}|${b.width}|${b.height}`;
+
+  const movePill = (item, animate) => {
+    const box = measure(item);
+    lastBox = boxKey(box);
+    const to = { ...box, autoAlpha: 1 };
+    if (animate && !reducedMotion) gsap.to(pill, { ...to, duration: 0.45, overwrite: true });
+    else gsap.set(pill, to);
+  };
+
+  // ── ARIA: sidebar is a vertical tablist, images are the panels ────────────
+  list.setAttribute('role', 'tablist');
+  list.setAttribute('aria-orientation', 'vertical');
+  panes.forEach(({ item, img, key }, i) => {
+    const tabId = `h-dashboard-tab-${key || i}`;
+    const panelId = `h-dashboard-panel-${key || i}`;
+    item.id = tabId;
+    item.setAttribute('role', 'tab');
+    item.setAttribute('aria-controls', panelId);
+    img.id = panelId;
+    img.setAttribute('role', 'tabpanel');
+    img.setAttribute('aria-labelledby', tabId);
+  });
+
+  // ── Activation ────────────────────────────────────────────────────────────
+  let active = -1;
+
+  const setActive = (index, animate = true) => {
+    if (!panes[index] || index === active) return;
+    const prev = panes[active];
+    active = index;
+    const { item, img } = panes[index];
+
+    panes.forEach((p, i) => {
+      const on = i === index;
+      p.item.setAttribute('data-state', on ? 'active' : 'inactive');
+      p.item.setAttribute('aria-selected', on ? 'true' : 'false');
+      p.item.tabIndex = on ? 0 : -1;
+    });
+
+    movePill(item, animate);
+
+    if (!animate || reducedMotion) {
+      gsap.set(
+        panes.map((p) => p.img),
+        { autoAlpha: 0, zIndex: 1 }
+      );
+      gsap.set(img, { autoAlpha: 1, scale: 1, y: 0, zIndex: 2 });
+      return;
+    }
+
+    if (prev && prev.img !== img) {
+      gsap.set(prev.img, { zIndex: 1 });
+      gsap.to(prev.img, { autoAlpha: 0, scale: 0.985, duration: 0.35, overwrite: true });
+    }
+    gsap.set(img, { zIndex: 2 });
+    gsap.fromTo(
+      img,
+      { autoAlpha: 0, scale: 1.015, y: 8 },
+      { autoAlpha: 1, scale: 1, y: 0, duration: 0.5, overwrite: true }
+    );
+  };
+
+  // ── Events ────────────────────────────────────────────────────────────────
+  panes.forEach(({ item }, i) => {
+    item.addEventListener('click', () => setActive(i));
+    item.addEventListener('keydown', (e) => {
+      const last = panes.length - 1;
+      let next = null;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') next = i === last ? 0 : i + 1;
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') next = i === 0 ? last : i - 1;
+      else if (e.key === 'Home') next = 0;
+      else if (e.key === 'End') next = last;
+      else if (e.key === 'Enter' || e.key === ' ') next = i;
+      if (next === null) return;
+      e.preventDefault();
+      setActive(next);
+      panes[next].item.focus();
+    });
+  });
+
+  // ── Keep the pill on target ───────────────────────────────────────────────
+  // The section is sized in vw, so every item dimension is a moving target. A
+  // window resize listener would miss the other things that shift it (webfont
+  // reflow, zoom, the sidebar's own content changing), so observe the list
+  // itself instead — it fires for all of them, including width changes.
+  //
+  // Safe from feedback loops: the pill is absolutely positioned, so resizing it
+  // can't change the size of the box being observed.
+  //
+  // Mobile-scroll note: the usual width-only guard exists because window
+  // resize fires on every URL-bar show/hide. That doesn't apply here — a
+  // ResizeObserver on the list only fires if the list's own box actually
+  // changed, and the extra rect check below drops no-op callbacks anyway.
+  const syncPill = () => {
+    if (!panes[active]) return;
+    // Don't fight a click transition that's mid-flight — it already measured.
+    if (gsap.isTweening(pill)) return;
+    const box = measure(panes[active].item);
+    if (boxKey(box) === lastBox) return;
+    movePill(panes[active].item, false);
+  };
+
+  tabsResizeObserver?.disconnect(); // repeat inits (Barba) replace, never stack
+  tabsResizeObserver = new ResizeObserver(syncPill);
+  tabsResizeObserver.observe(list);
+  items.forEach((el) => tabsResizeObserver.observe(el));
+
+  // Honour an active state already set in Webflow, otherwise open the first tab.
+  const preset = panes.findIndex(({ item }) => item.getAttribute('data-state') === 'active');
+  setActive(preset > -1 ? preset : 0, false);
 }
