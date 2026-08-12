@@ -178,6 +178,103 @@ const API = (function () {
       },
     },
 
+    // 6 · Shield + logo grid -------------------------------------------------
+    shield: {
+      timeScale: 1,
+
+      // The tile grid is irregular, so the reveal is driven by each tile's
+      // distance from the shield centre rather than by DOM order — it expands
+      // as a real ring, and equidistant tiles fire together.
+      logos: {
+        at: 0,
+        duration: 0.55,
+        from: { scale: 0.85, y: 6 },
+        spread: 0.75, // seconds for the wave to reach the outermost tile
+        ease: 'back.out(1.6)',
+      },
+
+      // Rows scroll slowly in alternating directions. Empty tiles are dropped and
+      // the remaining logos repeated to fill, so the row count, tile pitch and
+      // logo count are all read from the artwork — drop in a new export with
+      // more logos and nothing here needs changing.
+      marquee: {
+        enabled: true,
+        speed: 9, // SVG units per second
+        startImmediately: true, // scroll from the moment it enters view, not after the reveal
+        zigzag: true, // alternate direction per row; false = all one way
+        dropEmpty: true, // bin tiles that contain no logo
+        pitch: 0, // 0 = measure the spacing from the artwork
+        // SVG-side edge fade. Off by default — the feather is done in CSS on the
+        // wrapper instead (see README), which is tunable in Webflow without a
+        // release. Leaving both on would double up.
+        fade: 0, // fraction of the width faded at each edge; 0 = off
+      },
+
+      glow: { at: 0.7, duration: 1.1 }, // the soft white bloom behind the shield
+      shieldBase: { at: 0.8, duration: 0.7, from: { scale: 0.93 } },
+      mark: { at: 1.25, duration: 0.6, from: { scale: 0.8 } }, // the logo inside
+
+      // The static outlines grow out from behind the shield exactly like a wave
+      // does — same motion, but once, and they stay.
+      outlineReveal: { at: 0.65, duration: 1, ease: 'power2.out' },
+
+      connector: { at: 0.7, duration: 0.5 },
+      agentsBox: { at: 1.15, duration: 0.5 },
+      agentTiles: { at: 1.2, duration: 0.5, from: { y: 10 }, stagger: 0.08 },
+
+      // the dashed border round the agents row
+      agentsDash: {
+        enabled: true,
+        speed: 15, // 0 = inherit marquee.speed
+        reverse: false,
+      },
+
+      // Waves emanating from the shield. Each one steps out to where outline-1
+      // sits (taking its colour), rests, steps out to outline-2 (taking that
+      // colour), rests, then clears. The two real outlines are HIDDEN while this
+      // runs — the waves are the outlines. Stop positions and colours are read
+      // off the real outlines at runtime, so a re-export keeps them aligned.
+      ripple: {
+        enabled: true,
+        // Index of the first outline that animates. Everything before it stays
+        // put — outline-1 is where the connector line meets the shield, so
+        // animating it away would break that join.
+        animateFrom: 1,
+        // With more than one wave in flight there is almost always one parked at
+        // the stop, so it reads as a permanent outline rather than a pulse.
+        // One wave plus a gap gives a clear empty beat between passes.
+        waves: 1,
+        travel: 0.6, // time to move between stops
+        hold: 0.35, // pause on each stop
+        fadeOut: 0.4, // fade after the last stop
+        gap: 0.7, // empty beat before the next wave sets off
+        peakOpacity: 0.9,
+        strokeWidth: 1,
+        ease: 'power2.out', // quick push, then settling into the stop
+        startScale: 0, // 0 = start at the last static outline
+      },
+
+      // the mark breathing — deliberately not a multiple of `period` so the two
+      // loops drift out of phase instead of pulsing in lockstep
+      breathe: {
+        enabled: true,
+        scale: 1.14,
+        duration: 2.3,
+        ease: 'sine.inOut',
+      },
+
+      // The solid shield breathing under its outline. Only the body moves —
+      // outline-1 stays put because the connector line meets it, and a moving
+      // outline would pull away from that join. Keep this subtle: it sits behind
+      // the mark's own breathe, and the two compound visually.
+      shieldBreathe: {
+        enabled: true,
+        scale: 1.02,
+        duration: 3.1, // not a multiple of the mark's 2.3, so they drift apart
+        ease: 'sine.inOut',
+      },
+    },
+
     // 5 · Audit log ---------------------------------------------------------
     'audit-log': {
       timeScale: 1,
@@ -203,10 +300,12 @@ const API = (function () {
   // setup
   // ===========================================================================
 
+
   // Mobile browsers fire resize when the URL bar hides on scroll. Without this,
   // every scroll gesture triggers a full ScrollTrigger refresh — the width-only
   // resize filter, but handled by ScrollTrigger itself.
   ScrollTrigger.config({ ignoreMobileResize: true });
+
 
   var SVGNS = 'http://www.w3.org/2000/svg';
 
@@ -615,6 +714,169 @@ const API = (function () {
     return loop;
   }
 
+  // Every 80×80 logo tile, found by its own rect rather than by Figma's junk
+  // group names ("Frame 2147223359"), which change on every re-export.
+  function tilesIn(scope) {
+    if (!scope) return [];
+    var out = [];
+    scope.querySelectorAll('rect[rx="12"]').forEach(function (r) {
+      if (parseFloat(r.getAttribute('width')) !== 80) return;
+      var g = r.parentNode;
+      if (g && g !== scope && out.indexOf(g) === -1) out.push(g);
+    });
+    return out;
+  }
+
+  // Rebuild the logo grid as a set of scrolling rows.
+  //
+  // Everything is measured, not assumed: rows come from the tiles' y positions,
+  // the pitch from the median gap between neighbours, and a tile counts as
+  // "empty" if it holds nothing but its background rect. The surviving logos are
+  // repeated until the row is wider than the viewport plus one full set, which
+  // is what makes the wrap seamless.
+  //
+  // Clip paths survive the move because userSpaceOnUse clips resolve in the
+  // referencing element's user space, so an ancestor translate carries them.
+  function buildMarquee(logos, cfg, viewW) {
+    if (!logos || !cfg || !cfg.enabled) return [];
+
+    // idempotent: keep a pristine copy so a rebuild does not clone the clones
+    if (logos.__orig == null) logos.__orig = logos.innerHTML;
+    else logos.innerHTML = logos.__orig;
+
+    var tiles = tilesIn(logos);
+    if (!tiles.length) return [];
+
+    var meta = tiles.map(function (t) {
+      var r = t.querySelector('rect[rx="12"]');
+      return {
+        el: t,
+        x: parseFloat(r.getAttribute('x')) || 0,
+        y: parseFloat(r.getAttribute('y')) || 0,
+        // anything beyond the background rect means it carries a logo
+        empty: !t.querySelector('path, image, use, circle, polygon, ellipse'),
+      };
+    });
+
+    // group into rows by y
+    var rows = [];
+    meta.forEach(function (m) {
+      var row = rows.filter(function (r) { return Math.abs(r.y - m.y) < 2; })[0];
+      if (!row) { row = { y: m.y, items: [] }; rows.push(row); }
+      row.items.push(m);
+    });
+    rows.sort(function (a, b) { return a.y - b.y; });
+
+    var built = [];
+    rows.forEach(function (row, ri) {
+      row.items.sort(function (a, b) { return a.x - b.x; });
+
+      // pitch = the median neighbour gap, so an irregular export still works
+      var gaps = [];
+      for (var i = 1; i < row.items.length; i++) gaps.push(row.items[i].x - row.items[i - 1].x);
+      gaps.sort(function (a, b) { return a - b; });
+      var pitch = cfg.pitch || gaps[Math.floor(gaps.length / 2)] || 96;
+
+      var startX = row.items[0].x;
+      var keep = cfg.dropEmpty ? row.items.filter(function (m) { return !m.empty; }) : row.items;
+      row.items.forEach(function (m) { if (keep.indexOf(m) === -1) m.el.remove(); });
+      if (!keep.length) return;
+
+      var setWidth = keep.length * pitch;
+      var copies = Math.ceil(viewW / setWidth) + 1; // viewport + one spare set
+
+      var rowG = document.createElementNS(SVGNS, 'g');
+      rowG.setAttribute('data-marquee-row', String(ri));
+      logos.appendChild(rowG);
+
+      for (var c = 0; c < copies; c++) {
+        for (var j = 0; j < keep.length; j++) {
+          var src = keep[j];
+          var node = c === 0 ? src.el : src.el.cloneNode(true);
+          var wrap = document.createElementNS(SVGNS, 'g');
+          var targetX = startX + (c * keep.length + j) * pitch;
+          wrap.setAttribute('transform', 'translate(' + (targetX - src.x) + ' 0)');
+          wrap.appendChild(node);
+          rowG.appendChild(wrap);
+        }
+      }
+
+      built.push({ g: rowG, setWidth: setWidth, dir: cfg.zigzag && ri % 2 ? 1 : -1 });
+    });
+
+    applyEdgeFade(logos, cfg.fade, viewW);
+    return built;
+  }
+
+  // Fade both edges of the scrolling grid with a luminance mask. Deliberately
+  // not a pair of white rects: a mask fades the tiles against whatever sits
+  // behind the SVG, so it survives the card ever not being white.
+  function applyEdgeFade(logos, fade, viewW) {
+    var root = logos.ownerSVGElement;
+    var prev = root.querySelector('#hi-marquee-fade');
+    if (prev) prev.remove();
+    logos.removeAttribute('mask');
+    if (!fade || fade <= 0) return;
+
+    var defs = root.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS(SVGNS, 'defs');
+      root.insertBefore(defs, root.firstChild);
+    }
+
+    var vb = root.viewBox && root.viewBox.baseVal;
+    var h = (vb && vb.height) || parseFloat(root.getAttribute('height')) || 431;
+    var f = Math.min(0.49, fade);
+
+    var grad = document.createElementNS(SVGNS, 'linearGradient');
+    grad.setAttribute('id', 'hi-marquee-fade-grad');
+    grad.setAttribute('x1', '0');
+    grad.setAttribute('x2', '1');
+    [[0, '#000'], [f, '#fff'], [1 - f, '#fff'], [1, '#000']].forEach(function (s) {
+      var stop = document.createElementNS(SVGNS, 'stop');
+      stop.setAttribute('offset', String(s[0]));
+      stop.setAttribute('stop-color', s[1]);
+      grad.appendChild(stop);
+    });
+
+    var mask = document.createElementNS(SVGNS, 'mask');
+    mask.setAttribute('id', 'hi-marquee-fade');
+    mask.setAttribute('maskUnits', 'userSpaceOnUse');
+    var r = document.createElementNS(SVGNS, 'rect');
+    r.setAttribute('x', '0');
+    r.setAttribute('y', '0');
+    r.setAttribute('width', String(viewW));
+    r.setAttribute('height', String(h));
+    r.setAttribute('fill', 'url(#hi-marquee-fade-grad)');
+    mask.appendChild(grad);
+    mask.appendChild(r);
+    defs.appendChild(mask);
+
+    logos.setAttribute('mask', 'url(#hi-marquee-fade)');
+  }
+
+  // Drives several independent loops as one, for the pause/kill plumbing.
+  function multiLoop(list) {
+    return {
+      play: function () { list.forEach(function (t) { t.play(); }); },
+      pause: function () { list.forEach(function (t) { t.pause(); }); },
+      kill: function () { list.forEach(function (t) { t.kill(); }); },
+      paused: function () { return list[0] ? list[0].paused() : true; },
+      duration: function () { return list[0] ? list[0].duration() : 0; },
+    };
+  }
+
+  // Distance from a point, per element, normalised 0..1 — the basis of the
+  // centre-out wave.
+  function radialDelays(els, cx, cy) {
+    var d = els.map(function (el) {
+      var b = el.getBBox();
+      return Math.sqrt(Math.pow(b.x + b.width / 2 - cx, 2) + Math.pow(b.y + b.height / 2 - cy, 2));
+    });
+    var max = Math.max.apply(null, d) || 1;
+    return d.map(function (v) { return v / max; });
+  }
+
   // ---------------------------------------------------------------------------
   // builders — each returns a paused timeline, optionally with .__loop attached
   // ---------------------------------------------------------------------------
@@ -727,6 +989,273 @@ const API = (function () {
     return tl;
   };
 
+  BUILD.shield = function (root, d) {
+    var k = CONFIG.shield;
+    var tl = gsap.timeline({ paused: true });
+
+    var shield = one(root, 'shield');
+    var agents = one(root, 'ai-agents');
+    if (!shield) return tl;
+
+    // Named layers, with a structural fallback in case a re-export loses them
+    var parts = [].slice.call(shield.children);
+    var glow = one(root, 'shield-bg') || parts.filter(function (el) { return el.getAttribute('filter'); })[0];
+    var body = one(root, 'shield-base');
+    var mark = one(root, 'shield-logo');
+
+    // outline-1 is the inner ring, outline-2 the outer one — the pulse runs 1 → 2
+    var rings = [one(root, 'shield-outline-1'), one(root, 'shield-outline-2')].filter(Boolean);
+    if (!rings.length) {
+      rings = parts.filter(function (el) {
+        return el.tagName === 'path' && el.getAttribute('stroke') && !el.getAttribute('filter');
+      });
+    }
+
+    var sb = shield.getBBox();
+    var cx = sb.x + sb.width / 2;
+    var cy = sb.y + sb.height / 2;
+
+    // ── logo grid: restructure into scrolling rows FIRST, so the centre-out
+    //    reveal measures the tiles where they actually end up ─────────────────
+    var vb = root.viewBox && root.viewBox.baseVal;
+    var viewW = (vb && vb.width) || parseFloat(root.getAttribute('width')) || 700;
+    var rows = buildMarquee(one(root, 'logos'), k.marquee, viewW);
+
+    // ── logo grid, centre-out ────────────────────────────────────────────────
+    var tiles = tilesIn(one(root, 'logos'));
+    if (tiles.length) {
+      var norm = radialDelays(tiles, cx, cy);
+      tiles.forEach(function (t) { gsap.set(t, { transformOrigin: 'center center' }); });
+      tl.from(
+        tiles,
+        {
+          autoAlpha: 0,
+          scale: k.logos.from.scale,
+          y: k.logos.from.y * d,
+          duration: k.logos.duration,
+          ease: k.logos.ease,
+          stagger: function (i) { return norm[i] * k.logos.spread; },
+        },
+        k.logos.at
+      );
+    }
+
+    // ── the shield itself ────────────────────────────────────────────────────
+    var base = [glow, rings[0], rings[1], body].filter(Boolean);
+    gsap.set(base.concat(mark ? [mark] : []), { transformOrigin: 'center center' });
+
+    if (glow) tl.from(glow, { autoAlpha: 0, duration: k.glow.duration }, k.glow.at);
+
+    // Split the outlines into the ones that stay put and the ones the waves
+    // replace. Only the moving set is held out of the reveal — the entrance's
+    // from-tween ends at autoAlpha:1 and would otherwise un-hide them.
+    var animFrom = Math.max(0, Math.min(k.ripple.animateFrom | 0, rings.length));
+    var rippleOn = k.ripple.enabled && rings.length > animFrom;
+    var staticRings = rippleOn ? rings.slice(0, animFrom) : rings;
+    var movingRings = rippleOn ? rings.slice(animFrom) : [];
+
+    tl.from(
+      [body].filter(Boolean),
+      { autoAlpha: 0, scale: k.shieldBase.from.scale, duration: k.shieldBase.duration },
+      k.shieldBase.at
+    );
+
+    // Static outlines expand out from behind the shield, matching the wave's
+    // motion — the scale they start at is the shield body, same as a wave's.
+    if (staticRings.length && body) {
+      var baseWidth = rings[0].getBBox().width;
+      var fromScale = body.getBBox().width / baseWidth;
+      staticRings.forEach(function (r) {
+        gsap.set(r, { transformOrigin: 'center center' });
+        tl.fromTo(
+          r,
+          { scale: (fromScale * baseWidth) / r.getBBox().width, autoAlpha: 0 },
+          {
+            scale: 1,
+            autoAlpha: 1,
+            duration: k.outlineReveal.duration,
+            ease: k.outlineReveal.ease,
+          },
+          k.outlineReveal.at
+        );
+      });
+    }
+    if (mark) {
+      tl.from(mark, { autoAlpha: 0, scale: k.mark.from.scale, duration: k.mark.duration }, k.mark.at);
+    }
+
+    // ── connector + agents row ───────────────────────────────────────────────
+    var conn = one(root, 'connector');
+    if (conn && conn.getTotalLength) {
+      dashPrime(conn);
+      tl.to(conn, { strokeDashoffset: 0, duration: k.connector.duration, ease: 'none' }, k.connector.at);
+    }
+    if (agents) {
+      var boxes = [].slice.call(agents.children).filter(function (el) { return el.tagName === 'rect'; });
+      tl.from(boxes, { autoAlpha: 0, duration: k.agentsBox.duration }, k.agentsBox.at);
+      var aTiles = tilesIn(agents);
+      if (aTiles.length) {
+        aTiles.forEach(function (t) { gsap.set(t, { transformOrigin: 'center center' }); });
+        tl.from(
+          aTiles,
+          { autoAlpha: 0, y: k.agentTiles.from.y * d, duration: k.agentTiles.duration, stagger: k.agentTiles.stagger },
+          k.agentTiles.at
+        );
+      }
+    }
+
+    // ── ambient: waves off the shield + the mark breathing ───────────────────
+    // Each wave is its own repeating timeline. Nesting infinite children inside
+    // one parent makes the parent's duration infinite and the offsets collapse,
+    // so they are kept separate and driven through a small facade instead.
+    var idles = [];
+
+    if (rippleOn) {
+      var rc = k.ripple;
+      // clear waves left over from a rebuild or a breakpoint change
+      shield.querySelectorAll('[data-ripple]').forEach(function (el) { el.remove(); });
+
+      // Stops measured off the real outlines, so a re-export stays aligned.
+      // The wave is drawn from rings[0]'s silhouette; every scale is that
+      // ring's width ratio against it.
+      var baseW = rings[0].getBBox().width;
+      var stops = movingRings.map(function (r) {
+        return { scale: r.getBBox().width / baseW, colour: r.getAttribute('stroke') };
+      });
+
+      // start where the last static outline sits, so the wave appears to peel
+      // off it rather than materialising in mid-air
+      var anchor = staticRings[staticRings.length - 1] || body;
+      var s0 = rc.startScale || (anchor ? anchor.getBBox().width / baseW : 0.85);
+
+      // only the moving outlines are replaced by waves; the rest stay visible
+      movingRings.forEach(function (r) {
+        r.setAttribute('data-ripple-hidden', '');
+        gsap.set(r, { autoAlpha: 0 });
+      });
+
+      var period = rc.travel * stops.length + rc.hold * stops.length + rc.fadeOut + (rc.gap || 0);
+
+      for (var w = 0; w < rc.waves; w++) {
+        var wave = document.createElementNS(SVGNS, 'path');
+        wave.setAttribute('d', rings[0].getAttribute('d'));
+        wave.setAttribute('fill', 'none');
+        wave.setAttribute('stroke', stops[0].colour);
+        wave.setAttribute('stroke-width', String(rc.strokeWidth));
+        // keeps the line the same weight as the wave grows, like a real ripple
+        wave.setAttribute('vector-effect', 'non-scaling-stroke');
+        wave.setAttribute('data-ripple', '');
+        wave.style.opacity = '0';
+        shield.insertBefore(wave, rings[0]);
+        gsap.set(wave, { transformOrigin: 'center center', scale: s0 });
+
+        var wt = gsap.timeline({
+          paused: true,
+          repeat: -1,
+          repeatDelay: rc.gap || 0, // the empty beat, spent invisible at the start scale
+          delay: (w * period) / rc.waves,
+        });
+        var at = 0;
+        stops.forEach(function (stop, si) {
+          // step out to this stop, taking its colour on the way
+          wt.to(
+            wave,
+            {
+              scale: stop.scale,
+              stroke: stop.colour,
+              opacity: rc.peakOpacity,
+              duration: rc.travel,
+              ease: rc.ease,
+            },
+            at
+          );
+          at += rc.travel + rc.hold; // then sit still for `hold`
+        });
+        // clear, and snap back to the start for the next pass
+        wt.to(wave, { opacity: 0, duration: rc.fadeOut, ease: 'none' }, at)
+          .set(wave, { scale: s0, stroke: stops[0].colour }, at + rc.fadeOut);
+
+        idles.push(wt);
+      }
+    }
+
+    // rows scroll forever; one set-width per cycle so the wrap is invisible
+    // The marquee is background texture — it reads as dead if it waits for the
+    // reveal, so it gets its own bucket that starts the moment the panel enters.
+    var immediate = [];
+    rows.forEach(function (row, ri) {
+      gsap.set(row.g, { willChange: 'transform' });
+      var dur = row.setWidth / k.marquee.speed;
+      var rt = gsap.timeline({ paused: true }).fromTo(
+        row.g,
+        { x: row.dir < 0 ? 0 : -row.setWidth },
+        { x: row.dir < 0 ? -row.setWidth : 0, duration: dur, ease: 'none', repeat: -1 }
+      );
+      // rows with the same set width would otherwise travel in lockstep
+      rt.time(((ri * 0.37) % 1) * dur);
+      (k.marquee.startImmediately ? immediate : idles).push(rt);
+    });
+
+    // The dashed frame crawls at the marquee's speed so the two read as one
+    // system rather than two unrelated animations. One dash period per cycle
+    // keeps the loop seamless whatever the dash pattern is.
+    if (k.agentsDash.enabled && agents) {
+      var dashed = agents.querySelector('[stroke-dasharray]');
+      if (dashed) {
+        var pattern = (dashed.getAttribute('stroke-dasharray') || '')
+          .split(/[\s,]+/)
+          .map(parseFloat)
+          .filter(function (n) { return !isNaN(n); });
+        var cycle = pattern.reduce(function (a, b) { return a + b; }, 0);
+        if (pattern.length === 1) cycle *= 2; // "8" means 8 on, 8 off
+        var dashSpeed = k.agentsDash.speed || k.marquee.speed;
+        if (cycle > 0 && dashSpeed > 0) {
+          immediate.push(
+            gsap.timeline({ paused: true }).fromTo(
+              dashed,
+              { strokeDashoffset: 0 },
+              {
+                strokeDashoffset: k.agentsDash.reverse ? cycle : -cycle,
+                duration: cycle / dashSpeed,
+                ease: 'none',
+                repeat: -1,
+              }
+            )
+          );
+        }
+      }
+    }
+    if (immediate.length) tl.__loopNow = multiLoop(immediate);
+
+    if (k.shieldBreathe && k.shieldBreathe.enabled && body) {
+      gsap.set(body, { transformOrigin: 'center center' });
+      idles.push(
+        gsap.timeline({ paused: true }).to(body, {
+          scale: k.shieldBreathe.scale,
+          duration: k.shieldBreathe.duration,
+          ease: k.shieldBreathe.ease,
+          yoyo: true,
+          repeat: -1,
+        })
+      );
+    }
+
+    if (k.breathe.enabled && mark) {
+      idles.push(
+        gsap.timeline({ paused: true }).to(mark, {
+          scale: k.breathe.scale,
+          duration: k.breathe.duration,
+          ease: k.breathe.ease,
+          yoyo: true,
+          repeat: -1,
+        })
+      );
+    }
+
+    if (idles.length) tl.__loop = multiLoop(idles);
+    return tl;
+  };
+
   BUILD['audit-log'] = function (root, d) {
     var k = CONFIG['audit-log'];
     var tl = gsap.timeline({ paused: true });
@@ -776,6 +1305,13 @@ const API = (function () {
       still.eventCallback('onComplete', null); // never start an infinite loop
       still.progress(1);
       if (still.__loop) still.__loop.kill();
+      if (still.__loopNow) still.__loopNow.kill();
+      // The shield ripple hides the real outlines and replaces them with waves.
+      // With no waves running, put the artwork back rather than leaving it bare.
+      svg.querySelectorAll('[data-ripple]').forEach(function (el) { el.remove(); });
+      svg.querySelectorAll('[data-ripple-hidden]').forEach(function (el) {
+        gsap.set(el, { autoAlpha: 1 });
+      });
       return;
     }
 
@@ -791,12 +1327,16 @@ const API = (function () {
       start: g.start,
       end: g.end,
       markers: g.markers,
-      onEnter: function () { tl.play(); },
-      // the entrance plays once, but an ambient loop must not burn frames off-screen
+      onEnter: function () {
+        tl.play();
+        if (tl.__loopNow) tl.__loopNow.play(); // background motion, no waiting
+      },
+      // ambient loops must not burn frames off-screen
       onToggle: function (self) {
+        if (tl.__loopNow) self.isActive ? tl.__loopNow.play() : tl.__loopNow.pause();
         if (!tl.__loop) return;
-        // only resume once the entrance has actually finished — otherwise the loop
-        // starts the moment the panel enters and runs underneath the reveal
+        // this bucket waits for the reveal — starting it early would run the
+        // ambient motion underneath the entrance
         if (self.isActive && tl.progress() === 1) tl.__loop.play();
         else tl.__loop.pause();
       },
@@ -845,6 +1385,7 @@ const API = (function () {
     triggers = [];
     Object.keys(timelines).forEach(function (n) {
       if (timelines[n].__loop) timelines[n].__loop.kill();
+      if (timelines[n].__loopNow) timelines[n].__loopNow.kill();
       timelines[n].kill();
       delete timelines[n];
     });
@@ -859,6 +1400,7 @@ const API = (function () {
 
     if (timelines[name]) {
       if (timelines[name].__loop) timelines[name].__loop.kill();
+      if (timelines[name].__loopNow) timelines[name].__loopNow.kill();
       timelines[name].progress(0).kill();
       delete timelines[name];
     }
@@ -875,7 +1417,6 @@ const API = (function () {
     return timelines[name];
   }
 
-  // exposed for console tuning in dev; harmless in production
   window.HIIllustrations = {
     config: CONFIG,
     init: init,

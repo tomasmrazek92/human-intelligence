@@ -8,6 +8,7 @@ import { initWhitePaperSwiper } from './osmo';
 import { initModalBasic } from './osmo';
 import { initPlatformDots } from './platform';
 import { initCardIllustrations } from './cardIllustrations';
+import { initIntegrationsControl } from './integrationsControl';
 import {
   revealDotGrid,
   revealChatBox,
@@ -523,6 +524,7 @@ function initVisuals(nextPage) {
   if (has('[data-reveal-group]')) initContentRevealScroll(nextPage);
   if (has('[data-anim="platform-dots"]')) initPlatformDots(nextPage);
   if (has('[data-hi-illustration]')) initCardIllustrations(scope);
+  if (has('[data-tab-active]')) initIntegrationsControl(scope);
 
   // Interactions
   if (has('[data-accordion-css-init]')) initAccordionCSS(scope);
