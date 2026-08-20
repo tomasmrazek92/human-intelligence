@@ -161,12 +161,17 @@ function startHighlightPulse(highlightPaths, wrapperEl) {
   ).observe(wrapperEl);
 }
 
+// The mount is normally a wrapper div that JS fills with SVGs from SVG_PATTERNS.
+// It can also BE the <svg> — a one-off pattern pasted straight into Webflow,
+// with no registry entry and nothing to inject.
+const baseSvgOf = (el) => (el.matches('svg') ? el : el.querySelector('[data-svg="base"]'));
+
 /**
  * Build the pulse-in timeline for a wrapper containing base + highlight SVGs.
  * Queries paths from each SVG independently.
  */
 function buildPulseIn(wrapperEl, { paused = false } = {}) {
-  const baseSvg = wrapperEl.querySelector('[data-svg="base"]');
+  const baseSvg = baseSvgOf(wrapperEl);
   const highlightSvg = wrapperEl.querySelector('[data-svg="highlight"]');
   if (!baseSvg) return;
 
@@ -214,7 +219,7 @@ function buildPulseIn(wrapperEl, { paused = false } = {}) {
  *   3. Arrow draws in via clip-path top → bottom (matches arrow flow direction)
  */
 function buildAppsIn(wrapperEl, { paused = false } = {}) {
-  const baseSvg = wrapperEl.querySelector('[data-svg="base"]');
+  const baseSvg = baseSvgOf(wrapperEl);
   const appsSvg = wrapperEl.querySelector('[data-svg="apps"]');
   if (!baseSvg || !appsSvg) return;
 
@@ -305,7 +310,10 @@ export function runPattern(nextPage) {
 
   $('[data-pattern]', scope).each(function () {
     const mode = $(this).data('pattern');
-    const ccClass = [...this.classList].find((c) => c.startsWith('cc-'));
+    // An <svg> mount is the artwork already — never look it up in the registry,
+    // and never overwrite its contents.
+    const isSvg = this.matches('svg');
+    const ccClass = isSvg ? null : [...this.classList].find((c) => c.startsWith('cc-'));
 
     // Inject two SVGs from JS registry
     if (ccClass) {

@@ -7,7 +7,8 @@ import { initHighlightMarkerTextReveal } from './osmo';
 import { initWhitePaperSwiper } from './osmo';
 import { initModalBasic } from './osmo';
 import { initPlatformDots } from './platform';
-import { initCardIllustrations } from './cardIllustrations';
+import { initCardIllustrations, replayCardIllustration } from './cardIllustrations';
+import { initAuditTabs } from './auditTabs';
 import { initIntegrationsControl } from './integrationsControl';
 import { initOrgGraph } from './orgGraph';
 import {
@@ -524,6 +525,9 @@ function initVisuals(nextPage) {
   if (has('[data-highlight-marker-reveal]')) initHighlightMarkerTextReveal(nextPage);
   if (has('[data-reveal-group]')) initContentRevealScroll(nextPage);
   if (has('[data-anim="platform-dots"]')) initPlatformDots(nextPage);
+  // Before the illustrations: this tags its two inlined SVGs with
+  // data-hi-illustration, so initCardIllustrations then wires them like any other.
+  if (has('.audit-logging-tabs-wrap')) initAuditTabs(scope, { replay: replayCardIllustration });
   if (has('[data-hi-illustration]')) initCardIllustrations(scope);
   if (has('[data-tab-active]')) initIntegrationsControl(scope);
   if (has('[data-hi-org-graph]')) initOrgGraph(scope);

@@ -650,6 +650,65 @@ const API = (function () {
 
       crawl: { enabled: true, speed: 6 }, // dash crawl, SVG units per second
     },
+
+    // 13 · Audit logging — three stacked log rows ----------------------------
+    // No ambient loop: three cards, one entrance, nothing that keeps running.
+    'audit-logging': {
+      timeScale: 1,
+
+      // Rows are ordered by where they sit in the artwork, not by Figma's stack
+      // order (which is bottom-up). `order`: 'top' | 'bottom' | 'dom'.
+      rows: {
+        order: 'top',
+        at: 0,
+        duration: 0.55,
+        stagger: 0.11,
+        from: { y: 14, x: -10 },
+      },
+
+      // The permitted/blocked dot pops once its own row has landed — the one
+      // accent in an otherwise flat card, so it carries the whole read.
+      dot: {
+        enabled: true,
+        lag: 0.3, // after that row's own start
+        duration: 0.4,
+        ease: 'back.out(3)',
+      },
+    },
+
+    // 14 · Audit logging 2 — table, then a filter being set --------------------
+    // One scripted beat: the table lands, the filter button and its dropdown
+    // arrive, and the cursor walks in and ticks the first choice. Entrance only.
+    'audit-logging-2': {
+      timeScale: 1,
+
+      header: { at: 0, duration: 0.5, from: { y: 8 } },
+      rows: { at: 0.12, duration: 0.5, stagger: 0.08, from: { y: 10 } },
+      button: { at: 0.8, duration: 0.45, from: { y: -6 } },
+
+      // the panel opens downward off its own top edge, then the choices fill in
+      dropdown: { at: 1.05, duration: 0.5, from: { y: -10 } },
+      choices: { at: 1.2, duration: 0.4, stagger: 0.07, from: { y: -6 } },
+
+      cursor: { at: 1.65, duration: 0.65, from: { x: 46, y: 58 } },
+
+      // scale dips about the arrow tip, so it reads as a press rather than a shrink
+      press: { enabled: true, at: 2.2, scale: 0.88, dip: 0.1, rebound: 0.2 },
+
+      // the tick lands on the bottom of the dip
+      check: { fade: 0.12, lag: 0.04, duration: 0.35, ease: 'back.out(2.6)' },
+    },
+
+    // 15 · Audit logging tabs — one filter result per tab ---------------------
+    // Both tabs are the same component with different rows, so they share this
+    // block. They live inside the tab crossfade, so the entrance is replayed on
+    // activation rather than played once on scroll — see replay() below.
+    'audit-logging-tab-1': {
+      timeScale: 1,
+      header: { at: 0, duration: 0.45, from: { y: -8 } },
+      rows: { at: 0.14, duration: 0.5, stagger: 0.08, from: { y: 12 } },
+      dot: { enabled: true, lag: 0.28, duration: 0.4, ease: 'back.out(3)' },
+    },
   };
 
   // ===========================================================================
@@ -3368,6 +3427,123 @@ const API = (function () {
   var timelines = {};
   var mm = null;
 
+  BUILD['audit-logging'] = function (root, d) {
+    var k = CONFIG['audit-logging'];
+    var tl = gsap.timeline({ paused: true });
+    var rows = series(root, 'row', 3);
+
+    // Figma stacks the rows bottom-up, so play them in artwork order instead —
+    // a re-export that reshuffles the layers still reveals top-down.
+    if (rows.length > 1 && rows[0].getBBox) {
+      rows.sort(function (a, b) { return a.getBBox().y - b.getBBox().y; });
+    }
+    if (k.rows.order === 'bottom') rows.reverse();
+
+    step(tl, rows, k.rows, d);
+
+    // Each row carries a drop-shadow filter, so the entrance is opacity + y only.
+    // Scaling one would re-run the Gaussian every frame for no visible gain.
+    if (k.dot.enabled) {
+      rows.forEach(function (row, i) {
+        var dot = row.querySelector('[data-anim^="Ellipse 485"]');
+        if (!dot) return;
+        tl.from(
+          dot,
+          {
+            autoAlpha: 0,
+            scale: 0,
+            transformOrigin: 'center',
+            duration: k.dot.duration,
+            ease: k.dot.ease,
+          },
+          (k.rows.at || 0) + i * (k.rows.stagger || 0) + k.dot.lag
+        );
+      });
+    }
+
+    return tl;
+  };
+
+  BUILD['audit-logging-2'] = function (root, d) {
+    var k = CONFIG['audit-logging-2'];
+    var tl = gsap.timeline({ paused: true });
+
+    var rows = series(root, 'Table Row', 6);
+    var cursor = matching(root, /^curso/)[0]; // Figma's layer is "curso" — match the stem
+    var box = one(root, 'Checkbox'); // choice 1, which the artwork ships ticked
+    var check = one(root, 'Primary');
+
+    step(tl, one(root, 'Table Header'), k.header, d);
+    step(tl, rows, k.rows, d);
+    step(tl, one(root, 'Button'), k.button, d);
+    step(tl, one(root, 'Dropdown'), k.dropdown, d);
+    step(tl, series(root, 'Dropdown Choice', 3), k.choices, d);
+    step(tl, cursor, k.cursor, d);
+
+    if (!k.press.enabled) return tl;
+
+    // The unchecked box is already in the file — choices 2 and 3 wear it. Clone
+    // one over choice 1 and offset it by the measured gap, so the pre-click state
+    // is the artwork's own rather than a colour guessed in code.
+    var ghost = null;
+    var plain = one(root, 'Checkbox_2');
+    if (box && plain && box.getBBox) {
+      var a = box.getBBox(), b = plain.getBBox();
+      ghost = plain.cloneNode(true);
+      ghost.removeAttribute('data-anim');
+      ghost.setAttribute('data-check-ghost', ''); // rebuild() sweeps these
+      box.parentNode.insertBefore(ghost, box.nextSibling);
+      gsap.set(ghost, { x: a.x - b.x, y: a.y - b.y });
+    }
+    gsap.set([box, check], { autoAlpha: 0 });
+
+    var at = k.press.at;
+    if (cursor) {
+      // origin is the arrow tip, so the dip reads as a press and not a shrink
+      tl.to(cursor, { scale: k.press.scale, duration: k.press.dip, transformOrigin: '0% 0%', ease: 'power2.in' }, at)
+        .to(cursor, { scale: 1, duration: k.press.rebound, ease: 'power2.out' }, at + k.press.dip);
+    }
+
+    var lands = at + k.press.dip;
+    if (ghost) tl.to(ghost, { autoAlpha: 0, duration: k.check.fade }, lands);
+    tl.to(box, { autoAlpha: 1, duration: k.check.fade }, lands);
+    tl.fromTo(
+      check,
+      { scale: 0, transformOrigin: 'center' },
+      { autoAlpha: 1, scale: 1, duration: k.check.duration, ease: k.check.ease },
+      lands + k.check.lag
+    );
+
+    return tl;
+  };
+
+  // Both tabs carry the same layer stack — one builder, one config block.
+  BUILD['audit-logging-tab-1'] = function (root, d) {
+    var k = CONFIG['audit-logging-tab-1'];
+    var tl = gsap.timeline({ paused: true });
+    var rows = series(root, 'Table Row', 5);
+
+    step(tl, one(root, 'Table Header'), k.header, d);
+    step(tl, rows, k.rows, d);
+
+    if (k.dot.enabled) {
+      rows.forEach(function (row, i) {
+        var dot = row.querySelector('[data-anim^="Ellipse 485"]');
+        if (!dot) return;
+        tl.from(
+          dot,
+          { autoAlpha: 0, scale: 0, transformOrigin: 'center', duration: k.dot.duration, ease: k.dot.ease },
+          (k.rows.at || 0) + i * (k.rows.stagger || 0) + k.dot.lag
+        );
+      });
+    }
+
+    return tl;
+  };
+
+  BUILD['audit-logging-tab-2'] = BUILD['audit-logging-tab-1'];
+  CONFIG['audit-logging-tab-2'] = CONFIG['audit-logging-tab-1'];
+
   // Marks a mount as having its start state applied, so CSS can keep it hidden
   // until then. The artwork is inlined in the markup, so between first paint and
   // this script running the browser shows the illustration fully assembled — and
@@ -3385,7 +3561,9 @@ const API = (function () {
     // A mount may hold both the desktop and the ≤767 artwork with CSS swapping
     // them. Wire the one actually on screen: getBBox on a display:none SVG
     // returns zeros, which would silently flatten every centre-out delay to 0.
-    var all = mount.querySelectorAll('svg');
+    // The mount is normally a wrapping div, but a component that tags the <svg>
+    // itself (audit-tabs) hands us the svg — querySelectorAll would miss it.
+    var all = mount.matches('svg') ? [mount] : mount.querySelectorAll('svg');
     var svg = null;
     for (var i = 0; i < all.length; i++) {
       if (all[i].getClientRects().length) { svg = all[i]; break; }
@@ -3496,11 +3674,44 @@ const API = (function () {
     if (mm) { mm.revert(); mm = null; }
   }
 
+  // Play an entrance again from the top. For illustrations inside a tab: the
+  // panes are only crossfaded, so they all keep their layout and one scroll
+  // trigger fires every tab's entrance at once — by the time a tab is clicked
+  // its animation is long finished. Call this on activation.
+  //
+  // Deliberately NOT rebuild(): that re-measures and re-wires, which is wasted
+  // work on every tab click and would re-run the ScrollTrigger setup.
+  function replay(name) {
+    var tl = timelines[name];
+
+    // First activation of a pane that was display:none when init() ran. The
+    // no-flash guard ([data-tab-image]:not(:first-child){display:none}) hides
+    // every pane but the first until the tab component boots, and wire() skips
+    // a hidden SVG on purpose — getBBox returns zeros there and would flatten
+    // every measured delay. It is on screen now, so wire it for real, once.
+    if (!tl) {
+      var mount = document.querySelector('[data-hi-illustration="' + name + '"]');
+      if (!mount) return;
+      var g = CONFIG.global;
+      wire(
+        mount,
+        name,
+        window.matchMedia('(max-width: ' + g.breakpoint + 'px)').matches,
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      );
+      tl = timelines[name];
+      if (!tl) return;
+    }
+    if (tl.__loop) tl.__loop.pause().progress(0);
+    if (tl.__loopNow) tl.__loopNow.restart();
+    tl.progress(0).play();
+  }
+
   // Rebuild one illustration in place after a config edit — the tuning loop.
   function rebuild(name) {
     var mount = document.querySelector('[data-hi-illustration="' + name + '"]');
     if (!mount) return;
-    var svg = mount.querySelector('svg');
+    var svg = mount.matches('svg') ? mount : mount.querySelector('svg');
 
     if (timelines[name]) {
       if (timelines[name].__loop) timelines[name].__loop.kill();
@@ -3512,7 +3723,7 @@ const API = (function () {
       if (t.trigger === mount) { t.kill(); return false; }
       return true;
     });
-    svg.querySelectorAll('[data-flow-pulse]').forEach(function (p) { p.remove(); });
+    svg.querySelectorAll('[data-flow-pulse],[data-check-ghost]').forEach(function (p) { p.remove(); });
     gsap.set(svg.querySelectorAll('[data-anim] *'), { clearProps: 'transform,opacity,visibility' });
 
     wire(mount, name, window.matchMedia('(max-width: ' + CONFIG.global.breakpoint + 'px)').matches, false);
@@ -3525,6 +3736,7 @@ const API = (function () {
     config: CONFIG,
     init: init,
     destroy: destroy,
+    replay: replay,
     rebuild: rebuild,
     timelines: timelines,
   };
@@ -3535,3 +3747,4 @@ const API = (function () {
 
 export const initCardIllustrations = API.init;
 export const destroyCardIllustrations = API.destroy;
+export const replayCardIllustration = API.replay;
