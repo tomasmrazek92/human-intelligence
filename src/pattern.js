@@ -1,4 +1,33 @@
-import { SVG_PATTERNS } from './svgs';
+/* SVG_PATTERNS is loaded on demand — see src/patterns-bundle.js. Importing it
+ * here put 6.8 MB of inline SVG into every page's bundle, patterns or not. */
+
+// The URL this bundle was served from, captured while it executes: dev server,
+// jsDelivr tag, anywhere. patterns-bundle.js sits next to it.
+const BUNDLE_BASE = (() => {
+  const src = (document.currentScript && document.currentScript.src) || '';
+  if (src) return src.replace(/[^/]+$/, '');
+  const guess = [...document.scripts].map((s) => s.src).find((s) => /index\.js/.test(s));
+  return guess ? guess.replace(/[^/]+$/, '') : '';
+})();
+
+let patternsPromise = null;
+
+function loadPatterns() {
+  if (window.HI_SVG_PATTERNS) return Promise.resolve(window.HI_SVG_PATTERNS);
+  if (patternsPromise) return patternsPromise;
+
+  patternsPromise = new Promise((resolve) => {
+    const el = document.createElement('script');
+    el.src = BUNDLE_BASE + 'patterns-bundle.js';
+    el.onload = () => resolve(window.HI_SVG_PATTERNS || null);
+    el.onerror = () => {
+      console.warn('[pattern] could not load ' + el.src);
+      resolve(null);
+    };
+    document.head.appendChild(el);
+  });
+  return patternsPromise;
+}
 
 /**
  * Pattern Animation — pulse-in reveal for SVG icon patterns, with post-reveal effects.
@@ -304,9 +333,16 @@ function initScroll(wrapperEl) {
   ).observe(wrapperEl);
 }
 
-export function runPattern(nextPage) {
+export async function runPattern(nextPage) {
   if (window.innerWidth < 992) return;
   const scope = nextPage || document;
+
+  // only pages with a registry mount need the artwork; an <svg> mount carries its own
+  const needsRegistry = [...$('[data-pattern]', scope)].some(
+    (el) => !el.matches('svg') && [...el.classList].some((c) => c.startsWith('cc-'))
+  );
+  const SVG_PATTERNS = needsRegistry ? await loadPatterns() : {};
+  if (needsRegistry && !SVG_PATTERNS) return;
 
   $('[data-pattern]', scope).each(function () {
     const mode = $(this).data('pattern');
