@@ -712,6 +712,1506 @@ const API = (function () {
   };
 
   // ===========================================================================
+  // SCENES — declarative illustrations, tuned in studio.html
+  // ===========================================================================
+  // Studio's Save rewrites the JSON between the markers, so it must stay JSON:
+  // double quotes, no comments, no trailing commas. Track keys:
+  //   targets   data-anim names, comma separated; `name*` matches a prefix.
+  //             Omitted = the track key. Each name (or each wildcard match /
+  //             each element of a single name) is one stagger unit.
+  //   preset    fade | from-bottom | from-top | from-left | from-right | pop |
+  //             grow-x | grow-y | lines | type | travel (ambient loop)
+  //   at, duration, stagger, distance, scale, origin, ease, enabled
+  var SCENES = /*SCENES:BEGIN*/{
+    "agents-hero": {
+      "timeScale": 1,
+      "tracks": {
+        "frame": {
+          "preset": "fade",
+          "at": 0,
+          "duration": 0.8,
+          "targets": "agents-frame, agents-border"
+        },
+        "agents": {
+          "preset": "from-bottom",
+          "at": 0.15,
+          "duration": 0.6,
+          "targets": "agent-item*",
+          "stagger": 0.12,
+          "distance": 16
+        },
+        "shield": {
+          "preset": "pop",
+          "at": 0.55,
+          "duration": 0.7,
+          "scale": 0.8
+        },
+        "lines": {
+          "preset": "fade",
+          "at": 0.85,
+          "duration": 0.5,
+          "targets": "line*",
+          "stagger": 0.06
+        },
+        "apps": {
+          "preset": "pop",
+          "at": 0.95,
+          "duration": 0.55,
+          "targets": "app-box*",
+          "stagger": 0.07,
+          "scale": 0.85
+        },
+        "dots": {
+          "preset": "travel",
+          "at": 0,
+          "duration": 2.4,
+          "targets": "line*",
+          "stagger": 0.4,
+          "towards": "up"
+        }
+      }
+    },
+    "act": {
+      "timeScale": 1,
+      "tracks": {
+        "panel": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.8,
+          "distance": 20
+        },
+        "logo": {
+          "preset": "pop",
+          "at": 0.3,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav": {
+          "preset": "from-left",
+          "at": 0.35,
+          "duration": 0.45,
+          "stagger": 0.04,
+          "distance": 6
+        },
+        "bubble": {
+          "preset": "pop",
+          "at": 0.55,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt": {
+          "preset": "type",
+          "at": 0.7,
+          "duration": 0.01,
+          "stagger": 0.012
+        },
+        "status": {
+          "preset": "fade",
+          "at": 0.95,
+          "duration": 0.4
+        },
+        "answer": {
+          "preset": "lines",
+          "at": 1.3,
+          "duration": 0.55,
+          "stagger": 0.12,
+          "distance": 6
+        }
+      }
+    },
+    "orchestrate": {
+      "timeScale": 1,
+      "tracks": {
+        "panel": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.8,
+          "distance": 20
+        },
+        "title": {
+          "preset": "fade",
+          "at": 0.2,
+          "duration": 0.4
+        },
+        "avatar": {
+          "preset": "pop",
+          "at": 0.45,
+          "duration": 0.5,
+          "scale": 0.7
+        },
+        "sender": {
+          "preset": "from-left",
+          "at": 0.55,
+          "duration": 0.45,
+          "stagger": 0.06,
+          "distance": 6
+        },
+        "message": {
+          "preset": "lines",
+          "at": 0.55,
+          "duration": 0.5,
+          "stagger": 0.1,
+          "distance": 6
+        },
+        "checks": {
+          "preset": "lines",
+          "at": 0.55,
+          "duration": 0.3,
+          "stagger": 0.1,
+          "distance": 6
+        },
+        "accent": {
+          "preset": "grow-y",
+          "at": 1.15,
+          "duration": 0.5
+        },
+        "question": {
+          "preset": "lines",
+          "at": 1.6,
+          "duration": 0.45,
+          "distance": 6
+        },
+        "buttons": {
+          "preset": "pop",
+          "at": 1.8,
+          "duration": 0.45,
+          "targets": "send, pick",
+          "stagger": 0.08,
+          "scale": 0.9
+        }
+      }
+    },
+    "understand": {
+      "timeScale": 1,
+      "tracks": {
+        "panel": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.8,
+          "distance": 20
+        },
+        "logo": {
+          "preset": "pop",
+          "at": 0.3,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav": {
+          "preset": "from-left",
+          "at": 0.35,
+          "duration": 0.45,
+          "stagger": 0.04,
+          "distance": 6
+        },
+        "card": {
+          "preset": "from-top",
+          "at": 0.45,
+          "duration": 0.75,
+          "distance": 16
+        },
+        "avatar": {
+          "preset": "pop",
+          "at": 0.7,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "name": {
+          "preset": "lines",
+          "at": 0.8,
+          "duration": 0.4,
+          "distance": 4
+        },
+        "role": {
+          "preset": "lines",
+          "at": 0.9,
+          "duration": 0.4,
+          "distance": 4
+        },
+        "badge": {
+          "preset": "pop",
+          "at": 1.05,
+          "duration": 0.45,
+          "scale": 0.9,
+          "origin": "0% 50%"
+        },
+        "bubble": {
+          "preset": "pop",
+          "at": 1.05,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "0% 50%"
+        },
+        "prompt": {
+          "preset": "type",
+          "at": 1.05,
+          "duration": 0.4,
+          "stagger": 0.012
+        },
+        "status": {
+          "preset": "fade",
+          "at": 1.3,
+          "duration": 0.6
+        },
+        "answer": {
+          "preset": "lines",
+          "at": 1.85,
+          "duration": 0.55,
+          "stagger": 0.12,
+          "distance": 6
+        }
+      }
+    },
+    "access-follows-the-person": {
+      "timeScale": 1,
+      "tracks": {
+        "panel": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.8,
+          "distance": 20
+        },
+        "logo": {
+          "preset": "pop",
+          "at": 0.3,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav": {
+          "preset": "from-left",
+          "at": 0.35,
+          "duration": 0.45,
+          "stagger": 0.04,
+          "distance": 6
+        },
+        "card": {
+          "preset": "from-top",
+          "at": 0.5,
+          "duration": 0.7,
+          "distance": 16
+        },
+        "avatar": {
+          "preset": "pop",
+          "at": 0.75,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "name": {
+          "preset": "lines",
+          "at": 0.85,
+          "duration": 0.4,
+          "distance": 4
+        },
+        "role": {
+          "preset": "lines",
+          "at": 0.95,
+          "duration": 0.4,
+          "distance": 4
+        },
+        "bubble": {
+          "preset": "pop",
+          "at": 0.95,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt": {
+          "preset": "type",
+          "at": 1.2,
+          "duration": 0.05,
+          "stagger": 0.012
+        },
+        "status": {
+          "preset": "fade",
+          "at": 1.55,
+          "duration": 0.4
+        },
+        "answer": {
+          "preset": "lines",
+          "at": 1.55,
+          "duration": 0.55,
+          "stagger": 0.14,
+          "distance": 6
+        }
+      }
+    },
+    "every-action-is-auditable": {
+      "timeScale": 1,
+      "tracks": {
+        "panel": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.8,
+          "distance": 20
+        },
+        "logo": {
+          "preset": "pop",
+          "at": 0.3,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav": {
+          "preset": "from-left",
+          "at": 0.35,
+          "duration": 0.45,
+          "stagger": 0.04,
+          "distance": 6
+        },
+        "card": {
+          "preset": "from-top",
+          "at": 0.5,
+          "duration": 0.7,
+          "distance": 16
+        },
+        "avatar": {
+          "preset": "pop",
+          "at": 0.75,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "name": {
+          "preset": "lines",
+          "at": 0.85,
+          "duration": 0.4,
+          "distance": 4
+        },
+        "role": {
+          "preset": "lines",
+          "at": 0.95,
+          "duration": 0.4,
+          "distance": 4
+        },
+        "badges": {
+          "preset": "pop",
+          "at": 1.1,
+          "duration": 0.45,
+          "targets": "badge, badge_2",
+          "stagger": 0.12,
+          "scale": 0.9,
+          "origin": "0% 50%"
+        },
+        "bubble": {
+          "preset": "pop",
+          "at": 1.3,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt": {
+          "preset": "type",
+          "at": 1.35,
+          "duration": 0.05,
+          "stagger": 0.012
+        },
+        "status": {
+          "preset": "fade",
+          "at": 1.6,
+          "duration": 0.4
+        },
+        "answer": {
+          "preset": "lines",
+          "at": 1.85,
+          "duration": 0.55,
+          "stagger": 0.14,
+          "distance": 6
+        }
+      }
+    },
+    "definitions-stay-consistent": {
+      "timeScale": 1,
+      "tracks": {
+        "window": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.8,
+          "distance": 20
+        },
+        "logo": {
+          "preset": "pop",
+          "at": 0.3,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav": {
+          "preset": "from-left",
+          "at": 0.35,
+          "duration": 0.45,
+          "stagger": 0.05,
+          "distance": 6
+        },
+        "bubble": {
+          "preset": "pop",
+          "at": 0.55,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt": {
+          "preset": "type",
+          "at": 0.7,
+          "duration": 0.05,
+          "stagger": 0.015
+        },
+        "status": {
+          "preset": "fade",
+          "at": 1.2,
+          "duration": 0.4
+        },
+        "answer": {
+          "preset": "lines",
+          "at": 1.3,
+          "duration": 0.55,
+          "stagger": 0.12,
+          "distance": 6
+        },
+        "window_2": {
+          "preset": "from-bottom",
+          "at": 1.45,
+          "duration": 0.8,
+          "distance": 28
+        },
+        "logo_2": {
+          "preset": "pop",
+          "at": 1.65,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav_2": {
+          "preset": "from-left",
+          "at": 1.8,
+          "duration": 0.45,
+          "stagger": 0.05,
+          "distance": 6
+        },
+        "bubble_2": {
+          "preset": "pop",
+          "at": 1.95,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt_2": {
+          "preset": "type",
+          "at": 2.05,
+          "duration": 0.05,
+          "stagger": 0.015
+        },
+        "answer_2": {
+          "preset": "lines",
+          "at": 2.1,
+          "duration": 0.55,
+          "stagger": 0.12,
+          "distance": 6
+        }
+      }
+    },
+    "policies-follow-the-data": {
+      "timeScale": 1,
+      "tracks": {
+        "table": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.8,
+          "distance": 20
+        },
+        "header": {
+          "preset": "fade",
+          "at": 0.15,
+          "duration": 0.45,
+          "stagger": 0.04
+        },
+        "rows": {
+          "preset": "from-bottom",
+          "at": 0.15,
+          "duration": 0.55,
+          "targets": "row, row_2, row_3, row_4, row_5, row_6",
+          "stagger": 0.09,
+          "distance": 10
+        }
+      }
+    },
+    "semantic-hero": {
+      "timeScale": 1,
+      "tracks": {
+        "header": {
+          "preset": "fade",
+          "at": 0,
+          "duration": 0.4
+        },
+        "row": {
+          "preset": "from-bottom",
+          "at": 0.1,
+          "duration": 0.5,
+          "stagger": 0.06,
+          "distance": 10
+        },
+        "drawer": {
+          "preset": "from-right",
+          "at": 0.5,
+          "duration": 0.6,
+          "distance": 40
+        },
+        "metric": {
+          "preset": "lines",
+          "at": 0.62,
+          "duration": 0.35,
+          "stagger": 0,
+          "distance": 6
+        },
+        "people": {
+          "preset": "from-bottom",
+          "at": 0.65,
+          "duration": 0.35,
+          "stagger": 0.03,
+          "distance": 6
+        },
+        "status": {
+          "preset": "fade",
+          "at": 0.68,
+          "duration": 0.3
+        },
+        "status-dot": {
+          "preset": "pop",
+          "at": 0.74,
+          "duration": 0.35,
+          "scale": 0,
+          "ease": "back.out(3)"
+        },
+        "calc-label": {
+          "preset": "fade",
+          "at": 0.7,
+          "duration": 0.3
+        },
+        "calc": {
+          "preset": "lines",
+          "at": 0.72,
+          "duration": 0.35,
+          "stagger": 0.04,
+          "distance": 6
+        },
+        "segments-label": {
+          "preset": "fade",
+          "at": 0.76,
+          "duration": 0.3
+        },
+        "segments": {
+          "preset": "pop",
+          "at": 0.77,
+          "duration": 0.35,
+          "scale": 0.97,
+          "origin": "50% 0%"
+        },
+        "segment-row": {
+          "preset": "from-top",
+          "at": 0.8,
+          "duration": 0.3,
+          "stagger": 0.03,
+          "distance": 6
+        },
+        "sql-label": {
+          "preset": "fade",
+          "at": 0.83,
+          "duration": 0.3
+        },
+        "sql": {
+          "preset": "from-bottom",
+          "at": 0.84,
+          "duration": 0.35,
+          "distance": 10
+        },
+        "sql-line": {
+          "preset": "type",
+          "at": 0.9,
+          "duration": 0.04,
+          "stagger": 0.008
+        }
+      }
+    },
+    "semantic-feature-1": {
+      "timeScale": 1,
+      "tracks": {
+        "window": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.8,
+          "distance": 20
+        },
+        "logo": {
+          "preset": "pop",
+          "at": 0.3,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav": {
+          "preset": "from-left",
+          "at": 0.35,
+          "duration": 0.45,
+          "stagger": 0.05,
+          "distance": 6
+        },
+        "bubble": {
+          "preset": "pop",
+          "at": 0.55,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt": {
+          "preset": "type",
+          "at": 0.7,
+          "duration": 0.05,
+          "stagger": 0.015
+        },
+        "status": {
+          "preset": "fade",
+          "at": 0.95,
+          "duration": 0.4
+        },
+        "answer": {
+          "preset": "lines",
+          "at": 1.15,
+          "duration": 0.55,
+          "stagger": 0.12,
+          "distance": 6
+        },
+        "window_2": {
+          "preset": "from-bottom",
+          "at": 1.6,
+          "duration": 0.8,
+          "distance": 28
+        },
+        "logo_2": {
+          "preset": "pop",
+          "at": 1.9,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav_2": {
+          "preset": "from-left",
+          "at": 2.05,
+          "duration": 0.45,
+          "stagger": 0.05,
+          "distance": 6
+        },
+        "bubble_2": {
+          "preset": "pop",
+          "at": 2.55,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt_2": {
+          "preset": "type",
+          "at": 2.7,
+          "duration": 0.05,
+          "stagger": 0.015
+        },
+        "answer_2": {
+          "preset": "lines",
+          "at": 2.7,
+          "duration": 0.55,
+          "stagger": 0.12,
+          "distance": 6
+        }
+      }
+    },
+    "semantic-feature-2": {
+      "timeScale": 1,
+      "tracks": {
+        "tab": {
+          "preset": "from-top",
+          "at": 0,
+          "duration": 0.5,
+          "distance": 8
+        },
+        "question-box": {
+          "preset": "pop",
+          "at": 0.15,
+          "duration": 0.5,
+          "scale": 0.96,
+          "origin": "0% 0%"
+        },
+        "question": {
+          "preset": "type",
+          "at": 0.35,
+          "duration": 0.05,
+          "stagger": 0.012
+        },
+        "connector": {
+          "preset": "draw",
+          "at": 0.85,
+          "duration": 0.6,
+          "targets": "connector, connector_2, connector_3",
+          "dir": "down"
+        },
+        "caps": {
+          "preset": "fade",
+          "at": 0.9,
+          "duration": 0.3,
+          "targets": "cap, cap_2, cap_3"
+        },
+        "match-label": {
+          "preset": "fade",
+          "at": 1.4,
+          "duration": 0.4
+        },
+        "run-label": {
+          "preset": "fade",
+          "at": 1.4,
+          "duration": 0.4,
+          "targets": "run-label, run-label_2"
+        },
+        "cards": {
+          "preset": "from-bottom",
+          "at": 1.45,
+          "duration": 0.55,
+          "targets": "match, sql, sql_2",
+          "distance": 8
+        },
+        "chip": {
+          "preset": "pop",
+          "at": 1.7,
+          "duration": 0.45,
+          "stagger": 0.08,
+          "scale": 0.85
+        },
+        "panel": {
+          "preset": "fade",
+          "at": 1.6,
+          "duration": 0.6
+        },
+        "sql-text": {
+          "preset": "type",
+          "at": 1.8,
+          "duration": 0.05,
+          "targets": "sql-text, sql-text_2",
+          "stagger": 0.008
+        },
+        "badge": {
+          "preset": "pop",
+          "at": 2.6,
+          "duration": 0.5,
+          "scale": 0.8,
+          "origin": "0% 50%",
+          "ease": "back.out(1.7)"
+        },
+        "dots": {
+          "preset": "travel",
+          "at": 0,
+          "duration": 2.2,
+          "targets": "connector, connector_2, connector_3, dot, dot_2, dot_3",
+          "stagger": 0.45,
+          "fadeEdge": 0.06,
+          "towards": "down"
+        }
+      }
+    },
+    "semantic-feature-3": {
+      "timeScale": 1,
+      "tracks": {
+        "label": {
+          "preset": "fade",
+          "at": 0,
+          "duration": 0.4
+        },
+        "code": {
+          "preset": "from-bottom",
+          "at": 0.1,
+          "duration": 0.7,
+          "distance": 16
+        },
+        "code-head": {
+          "preset": "fade",
+          "at": 0.4,
+          "duration": 0.4
+        },
+        "code-line": {
+          "preset": "from-left",
+          "at": 0.5,
+          "duration": 0.4,
+          "stagger": 0.09,
+          "distance": 6
+        },
+        "hi-label": {
+          "preset": "fade",
+          "at": 1.65,
+          "duration": 0.4
+        },
+        "modal": {
+          "preset": "from-bottom",
+          "at": 1.45,
+          "duration": 0.7,
+          "distance": 24
+        },
+        "field": {
+          "preset": "from-bottom",
+          "at": 1.45,
+          "duration": 0.45,
+          "stagger": 0.1,
+          "distance": 8
+        },
+        "value": {
+          "preset": "type",
+          "at": 1.45,
+          "duration": 0.05,
+          "stagger": 0.015
+        },
+        "segments-label": {
+          "preset": "fade",
+          "at": 1.45,
+          "duration": 0.4
+        },
+        "segment": {
+          "preset": "from-bottom",
+          "at": 1.45,
+          "duration": 0.45,
+          "stagger": 0.1,
+          "distance": 8
+        },
+        "button": {
+          "preset": "pop",
+          "at": 1.45,
+          "duration": 0.5,
+          "scale": 0.92
+        }
+      }
+    },
+    "semantic-feature-4": {
+      "timeScale": 1,
+      "tracks": {
+        "frame": {
+          "preset": "fade",
+          "at": 0,
+          "duration": 0.6
+        },
+        "title": {
+          "preset": "lines",
+          "at": 0.15,
+          "duration": 0.45,
+          "distance": 6
+        },
+        "description": {
+          "preset": "fade",
+          "at": 0.3,
+          "duration": 0.5
+        },
+        "table": {
+          "preset": "from-bottom",
+          "at": 0.35,
+          "duration": 0.7,
+          "distance": 12
+        },
+        "header": {
+          "preset": "fade",
+          "at": 0.5,
+          "duration": 0.4
+        },
+        "row": {
+          "preset": "from-bottom",
+          "at": 0.55,
+          "duration": 0.5,
+          "stagger": 0.07,
+          "distance": 8
+        }
+      }
+    },
+    "mcp-hero": {
+      "timeScale": 1,
+      "tracks": {
+        "card-glow": {
+          "preset": "fade",
+          "at": 0,
+          "duration": 0.6
+        },
+        "card": {
+          "preset": "from-bottom",
+          "at": 0.05,
+          "duration": 0.6,
+          "stagger": 0.08,
+          "distance": 12
+        },
+        "card-cap": {
+          "preset": "fade",
+          "at": 0.5,
+          "duration": 0.3,
+          "stagger": 0.05
+        },
+        "connector": {
+          "preset": "draw",
+          "at": 0.55,
+          "duration": 0.6,
+          "dir": "down",
+          "stagger": 0.05
+        },
+        "gate": {
+          "preset": "pop",
+          "at": 0.95,
+          "duration": 0.45,
+          "scale": 0.7,
+          "stagger": 0.06,
+          "ease": "back.out(2)"
+        },
+        "no-gate": {
+          "preset": "fade",
+          "at": 1.05,
+          "duration": 0.4
+        },
+        "model-glow": {
+          "preset": "fade",
+          "at": 1.1,
+          "duration": 0.5
+        },
+        "model": {
+          "preset": "from-bottom",
+          "at": 1.15,
+          "duration": 0.6,
+          "distance": 12
+        },
+        "rail": {
+          "preset": "draw",
+          "at": 1.45,
+          "duration": 0.5,
+          "dir": "down",
+          "stagger": 0.03
+        },
+        "row": {
+          "preset": "from-bottom",
+          "at": 1.5,
+          "duration": 0.5,
+          "stagger": 0.08,
+          "distance": 8
+        },
+        "row-cap": {
+          "preset": "fade",
+          "at": 1.7,
+          "duration": 0.3,
+          "stagger": 0.04
+        },
+        "dots": {
+          "preset": "travel",
+          "at": 0,
+          "duration": 2.4,
+          "targets": "connector, dot",
+          "stagger": 0.35,
+          "towards": "down"
+        }
+      }
+    },
+    "mcp-feature-1": {
+      "timeScale": 1,
+      "tracks": {
+        "window": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.65,
+          "distance": 20
+        },
+        "logo": {
+          "preset": "pop",
+          "at": 0.25,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav": {
+          "preset": "from-left",
+          "at": 0.3,
+          "duration": 0.45,
+          "stagger": 0.05,
+          "distance": 6
+        },
+        "card": {
+          "preset": "from-top",
+          "at": 0.4,
+          "duration": 0.55,
+          "distance": 16
+        },
+        "avatar": {
+          "preset": "pop",
+          "at": 0.6,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "name": {
+          "preset": "lines",
+          "at": 0.68,
+          "duration": 0.4,
+          "distance": 4
+        },
+        "role": {
+          "preset": "lines",
+          "at": 0.74,
+          "duration": 0.4,
+          "distance": 4
+        },
+        "bubble": {
+          "preset": "pop",
+          "at": 0.8,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt": {
+          "preset": "type",
+          "at": 0.9,
+          "duration": 0.05,
+          "stagger": 0.012
+        },
+        "status": {
+          "preset": "fade",
+          "at": 1.1,
+          "duration": 0.4
+        },
+        "answer": {
+          "preset": "lines",
+          "at": 1.3,
+          "duration": 0.55,
+          "stagger": 0.12,
+          "distance": 6
+        },
+        "window_2": {
+          "preset": "from-bottom",
+          "at": 1.45,
+          "duration": 0.65,
+          "distance": 24
+        },
+        "logo_2": {
+          "preset": "pop",
+          "at": 1.65,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav_2": {
+          "preset": "from-left",
+          "at": 1.75,
+          "duration": 0.45,
+          "stagger": 0.05,
+          "distance": 6
+        },
+        "card_2": {
+          "preset": "from-top",
+          "at": 1.85,
+          "duration": 0.55,
+          "distance": 16
+        },
+        "avatar_2": {
+          "preset": "pop",
+          "at": 1.95,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "name_2": {
+          "preset": "lines",
+          "at": 2.05,
+          "duration": 0.4,
+          "distance": 4
+        },
+        "role_2": {
+          "preset": "lines",
+          "at": 2.2,
+          "duration": 0.4,
+          "distance": 4
+        },
+        "bubble_2": {
+          "preset": "pop",
+          "at": 2.25,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt_2": {
+          "preset": "type",
+          "at": 2.35,
+          "duration": 0.05,
+          "stagger": 0.012
+        },
+        "status_2": {
+          "preset": "fade",
+          "at": 2.45,
+          "duration": 0.4
+        },
+        "answer_2": {
+          "preset": "lines",
+          "at": 3.72,
+          "duration": 0.55,
+          "stagger": 0.12,
+          "distance": 6
+        }
+      }
+    },
+    "mcp-feature-2": {
+      "timeScale": 1,
+      "tracks": {
+        "label": {
+          "preset": "fade",
+          "at": 0,
+          "duration": 0.4
+        },
+        "code": {
+          "preset": "from-bottom",
+          "at": 0.05,
+          "duration": 0.7,
+          "distance": 14
+        },
+        "code-line": {
+          "preset": "from-left",
+          "at": 0.35,
+          "duration": 0.4,
+          "stagger": 0.07,
+          "distance": 6
+        },
+        "badge": {
+          "preset": "pop",
+          "at": 0.95,
+          "duration": 0.45,
+          "scale": 0.9,
+          "origin": "0% 50%"
+        },
+        "connector": {
+          "preset": "draw",
+          "at": 1.05,
+          "duration": 0.55,
+          "dir": "down",
+          "stagger": 0.06
+        },
+        "cap": {
+          "preset": "fade",
+          "at": 1.1,
+          "duration": 0.3,
+          "stagger": 0.04
+        },
+        "card": {
+          "preset": "from-right",
+          "at": 1.35,
+          "duration": 0.55,
+          "stagger": 0.1,
+          "distance": 14
+        },
+        "bi-label": {
+          "preset": "fade",
+          "at": 2,
+          "duration": 0.4
+        },
+        "tools": {
+          "preset": "fade",
+          "at": 2.05,
+          "duration": 0.5
+        },
+        "tool": {
+          "preset": "pop",
+          "at": 2.15,
+          "duration": 0.45,
+          "stagger": 0.08,
+          "scale": 0.85
+        },
+        "dots": {
+          "preset": "travel",
+          "at": 0,
+          "duration": 2.2,
+          "targets": "connector, dot",
+          "stagger": 0.4,
+          "towards": "down"
+        }
+      }
+    },
+    "mcp-feature-3": {
+      "timeScale": 1,
+      "tracks": {
+        "table": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.7,
+          "distance": 12
+        },
+        "header": {
+          "preset": "fade",
+          "at": 0.25,
+          "duration": 0.4
+        },
+        "row": {
+          "preset": "from-bottom",
+          "at": 0.3,
+          "duration": 0.5,
+          "stagger": 0.07,
+          "distance": 8
+        },
+        "code": {
+          "preset": "from-top",
+          "at": 0.7,
+          "duration": 0.7,
+          "distance": 16
+        },
+        "code-head": {
+          "preset": "fade",
+          "at": 1,
+          "duration": 0.4
+        },
+        "code-line": {
+          "preset": "from-left",
+          "at": 1.1,
+          "duration": 0.4,
+          "stagger": 0.08,
+          "distance": 6
+        }
+      }
+    },
+    "policies-hero": {
+      "timeScale": 1,
+      "tracks": {
+        "logo": {
+          "preset": "pop",
+          "at": 0,
+          "duration": 0.5,
+          "stagger": 0.08,
+          "scale": 0.8
+        },
+        "connector": {
+          "preset": "draw",
+          "at": 0.3,
+          "duration": 0.5,
+          "dir": "right",
+          "stagger": 0.06
+        },
+        "cap": {
+          "preset": "fade",
+          "at": 0.35,
+          "duration": 0.3,
+          "stagger": 0.05
+        },
+        "shield": {
+          "preset": "pop",
+          "at": 0.6,
+          "duration": 0.55,
+          "scale": 0.6,
+          "ease": "back.out(2)"
+        },
+        "card": {
+          "preset": "from-right",
+          "at": 0.8,
+          "duration": 0.6,
+          "stagger": 0.1,
+          "distance": 24
+        },
+        "stack": {
+          "preset": "cycle",
+          "at": 0,
+          "duration": 0.7,
+          "targets": "card",
+          "step": 2.2,
+          "moveDuration": 0.7,
+          "wrapLift": 70
+        }
+      }
+    },
+    "policies-feature-1": {
+      "timeScale": 1,
+      "tracks": {
+        "window": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.7,
+          "distance": 18
+        },
+        "logo": {
+          "preset": "pop",
+          "at": 0.25,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav": {
+          "preset": "from-left",
+          "at": 0.3,
+          "duration": 0.45,
+          "stagger": 0.05,
+          "distance": 6
+        },
+        "card": {
+          "preset": "from-top",
+          "at": 0.4,
+          "duration": 0.6,
+          "distance": 16
+        },
+        "avatar": {
+          "preset": "pop",
+          "at": 0.62,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "identity": {
+          "preset": "lines",
+          "at": 0.7,
+          "duration": 0.4,
+          "stagger": 0.06,
+          "distance": 4
+        },
+        "badge": {
+          "preset": "pop",
+          "at": 0.85,
+          "duration": 0.45,
+          "stagger": 0.1,
+          "scale": 0.9,
+          "origin": "0% 50%"
+        },
+        "prompts": {
+          "preset": "pop",
+          "at": 1.1,
+          "duration": 0.5,
+          "targets": "blocked, allowed",
+          "stagger": 0.07,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "blocked-text": {
+          "preset": "tint",
+          "at": 1.75,
+          "duration": 0.35,
+          "from": "#333342",
+          "stagger": 0.12
+        },
+        "strike": {
+          "preset": "draw",
+          "at": 1.8,
+          "duration": 0.4,
+          "dir": "right",
+          "stagger": 0.12
+        }
+      }
+    },
+    "policies-feature-2": {
+      "timeScale": 1,
+      "tracks": {
+        "window": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.7,
+          "distance": 18
+        },
+        "logo": {
+          "preset": "pop",
+          "at": 0.25,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav": {
+          "preset": "from-left",
+          "at": 0.3,
+          "duration": 0.45,
+          "stagger": 0.05,
+          "distance": 6
+        },
+        "bubble": {
+          "preset": "pop",
+          "at": 0.5,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt": {
+          "preset": "type",
+          "at": 0.65,
+          "duration": 0.05,
+          "stagger": 0.012
+        },
+        "hi-mark": {
+          "preset": "pop",
+          "at": 1.15,
+          "duration": 0.5,
+          "scale": 0.7
+        },
+        "alert": {
+          "preset": "from-left",
+          "at": 2.1,
+          "duration": 0.5,
+          "distance": 16
+        },
+        "status": {
+          "preset": "fade",
+          "at": 1.5,
+          "duration": 0.4,
+          "stagger": 0.06
+        },
+        "divider": {
+          "preset": "draw",
+          "at": 1.6,
+          "duration": 0.5,
+          "dir": "right"
+        },
+        "answer-head": {
+          "preset": "lines",
+          "at": 1.75,
+          "duration": 0.45,
+          "distance": 5
+        },
+        "answer": {
+          "preset": "lines",
+          "at": 1.9,
+          "duration": 0.55,
+          "stagger": 0.1,
+          "distance": 6
+        }
+      }
+    },
+    "policies-feature-3": {
+      "timeScale": 1,
+      "tracks": {
+        "panel": {
+          "preset": "from-bottom",
+          "at": 0,
+          "duration": 0.7,
+          "distance": 16
+        },
+        "panel-head": {
+          "preset": "lines",
+          "at": 0.3,
+          "duration": 0.45,
+          "stagger": 0.08,
+          "distance": 5
+        },
+        "row": {
+          "preset": "from-bottom",
+          "at": 0.45,
+          "duration": 0.5,
+          "stagger": 0.09,
+          "distance": 8
+        },
+        "toggle": {
+          "preset": "pop",
+          "at": 0.7,
+          "duration": 0.4,
+          "stagger": 0.09,
+          "scale": 0.7,
+          "ease": "back.out(2.4)"
+        },
+        "create": {
+          "preset": "from-bottom",
+          "at": 0.85,
+          "duration": 0.7,
+          "distance": 22
+        },
+        "create-head": {
+          "preset": "lines",
+          "at": 0.95,
+          "duration": 0.4,
+          "distance": 5
+        },
+        "field": {
+          "preset": "from-bottom",
+          "at": 1.05,
+          "duration": 0.45,
+          "stagger": 0.1,
+          "distance": 8
+        },
+        "create-button": {
+          "preset": "pop",
+          "at": 1.25,
+          "duration": 0.45,
+          "scale": 0.9
+        }
+      }
+    }
+  }/*SCENES:END*/;
+  for (var sceneKey in SCENES) CONFIG[sceneKey] = SCENES[sceneKey];
+
+  // ===========================================================================
   // setup
   // ===========================================================================
 
@@ -854,19 +2354,9 @@ const API = (function () {
     return parts.length ? parts : null;
   }
 
-  function splitGlyphs(path) {
-    if (path.__glyphs) return path.__glyphs; // idempotent — rebuild() re-runs this
-
-    var all = absSubpaths(path);
-    if (!all || all.length < 2) return null;
-
-    var parts = all.filter(function (p) { return p.w || p.h; });
-    if (!parts.length) return null;
-
-    var parent = path.parentNode;
-
-    // group into lines by vertical overlap — more robust than baseline maths,
-    // which descenders (p, g, y) throw off
+  // group subpaths into text lines by vertical overlap — more robust than
+  // baseline maths, which descenders (p, g, y) throw off. Sorted top to bottom.
+  function groupLines(parts) {
     var lines = [];
     parts.slice().sort(function (a, b) { return a.y - b.y; }).forEach(function (p) {
       for (var i = 0; i < lines.length; i++) {
@@ -881,10 +2371,25 @@ const API = (function () {
       }
       lines.push({ top: p.y, bottom: p.y + p.h, items: [p] });
     });
+    return lines.sort(function (a, b) { return a.top - b.top; });
+  }
+
+  function splitGlyphs(path) {
+    if (path.__glyphs) return path.__glyphs; // idempotent — rebuild() re-runs this
+
+    var all = absSubpaths(path);
+    if (!all || all.length < 2) return null;
+
+    var parts = all.filter(function (p) { return p.w || p.h; });
+    if (!parts.length) return null;
+
+    var parent = path.parentNode;
+
+    var lines = groupLines(parts);
 
     // within a line, merge horizontally-overlapping contours into single glyphs
     var glyphs = [];
-    lines.sort(function (a, b) { return a.top - b.top; }).forEach(function (L) {
+    lines.forEach(function (L) {
       var cur = null;
       L.items.sort(function (a, b) { return a.x - b.x; }).forEach(function (p) {
         if (cur) {
@@ -1098,13 +2603,19 @@ const API = (function () {
   // recycled into the bottom slot so the teleport is never visible.
   function buildPolicyCycle(root, cfg) {
     if (!cfg || !cfg.enabled) return null;
+    return cardCycle(series(root, 'use-case', 4), cfg);
+  }
 
-    var cards = series(root, 'use-case', 4);
-    if (cards.length < 2) return null;
+  // Cards advance one slot at a time, forever: the card beside the shield is the
+  // featured one, so each policy takes its turn there. Slots are read from the
+  // artwork, so a re-export that moves them still works. Shared by the homepage
+  // policies builder and the `cycle` scene preset.
+  function cardCycle(cards, cfg) {
+    if (!cards || cards.length < 2) return null;
 
     // getBBox ignores the element's own transform, so this stays correct even
     // after the entrance tweens have written transforms onto the cards
-    var boxes = cards.map(function (c) {
+    var boxes = [].map.call(cards, function (c) {
       var b = c.getBBox();
       return { el: c, x: b.x, y: b.y };
     });
@@ -1120,13 +2631,16 @@ const API = (function () {
     });
 
     var loop = gsap.timeline({ paused: true, repeat: -1 });
+    var move = cfg.moveDuration != null ? cfg.moveDuration : 0.7;
+    var lift = cfg.wrapLift != null ? cfg.wrapLift : 70;
+    var step = cfg.step != null ? cfg.step : 2.2;
 
     for (var k = 1; k <= n; k++) {
       for (var c = 0; c < boxes.length; c++) {
         var b = boxes[c];
         var from = (startSlot[c] - (k - 1) + n * 9) % n;
         var to = (startSlot[c] - k + n * 9) % n;
-        var at = (k - 1) * cfg.step;
+        var at = (k - 1) * step;
         var dx = slots[to].x - b.x;
         var dy = slots[to].y - b.y;
 
@@ -1135,19 +2649,19 @@ const API = (function () {
           loop
             .to(
               b.el,
-              { x: slots[0].x - b.x, y: slots[0].y - b.y - cfg.wrapLift, autoAlpha: 0, duration: cfg.moveDuration * 0.45 },
+              { x: slots[0].x - b.x, y: slots[0].y - b.y - lift, autoAlpha: 0, duration: move * 0.45 },
               at
             )
-            .set(b.el, { x: dx, y: dy + cfg.wrapLift }, at + cfg.moveDuration * 0.5)
-            .to(b.el, { x: dx, y: dy, autoAlpha: 1, duration: cfg.moveDuration * 0.5 }, at + cfg.moveDuration * 0.5);
+            .set(b.el, { x: dx, y: dy + lift }, at + move * 0.5)
+            .to(b.el, { x: dx, y: dy, autoAlpha: 1, duration: move * 0.5 }, at + move * 0.5);
         } else {
-          loop.to(b.el, { x: dx, y: dy, duration: cfg.moveDuration }, at);
+          loop.to(b.el, { x: dx, y: dy, duration: move }, at);
         }
       }
     }
 
     // hold the final dwell so the loop repeats on the beat rather than early
-    loop.to({ _: 0 }, { _: 1, duration: 0.001 }, n * cfg.step - 0.001);
+    loop.to({ _: 0 }, { _: 1, duration: 0.001 }, n * step - 0.001);
 
     return loop;
   }
@@ -1320,10 +2834,315 @@ const API = (function () {
   }
 
   // ---------------------------------------------------------------------------
+  // scene engine — builds a timeline from a SCENES entry
+  // ---------------------------------------------------------------------------
+
+  var PRESETS = ['fade', 'from-bottom', 'from-top', 'from-left', 'from-right', 'pop', 'grow-x', 'grow-y', 'draw', 'tint', 'lines', 'type', 'travel', 'cycle'];
+
+  // Text split for a scene track. Unlike splitGlyphs this is reversible: the
+  // studio switches a track between `lines` and `type` on the same path.
+  function scenePieces(path, mode) {
+    var all = absSubpaths(path);
+    var parts = all && all.filter(function (p) { return p.w || p.h; });
+    if (!parts || parts.length < 2) return [path];
+
+    var lines = groupLines(parts);
+    var chunks = [];
+    lines.forEach(function (L) {
+      if (mode === 'lines') {
+        chunks.push(L.items.sort(function (a, b) { return a.x - b.x; }).map(function (p) { return p.d; }).join(''));
+        return;
+      }
+      var cur = null;
+      L.items.sort(function (a, b) { return a.x - b.x; }).forEach(function (p) {
+        if (cur) {
+          var ov = Math.min(cur.x2, p.x + p.w) - Math.max(cur.x, p.x);
+          if (ov > Math.min(cur.x2 - cur.x, p.w) * 0.5) { cur.d += p.d; cur.x2 = Math.max(cur.x2, p.x + p.w); return; }
+        }
+        cur = { d: p.d, x: p.x, x2: p.x + p.w };
+        chunks.push(cur);
+      });
+    });
+    chunks = chunks.map(function (c) { return typeof c === 'string' ? c : c.d; });
+    if (chunks.length < 2) return [path];
+
+    var g = document.createElementNS(SVGNS, 'g');
+    for (var a = 0; a < path.attributes.length; a++) {
+      var at = path.attributes[a];
+      if (at.name !== 'd') g.setAttribute(at.name, at.value);
+    }
+    g.setAttribute('data-split', mode);
+    var out = chunks.map(function (d) {
+      var el = document.createElementNS(SVGNS, 'path');
+      el.setAttribute('d', d);
+      g.appendChild(el);
+      return el;
+    });
+    path.parentNode.replaceChild(g, path);
+    g.__orig = path;
+    return out;
+  }
+
+  // Undo every split and inline style so a scene can be rebuilt from scratch.
+  function sceneReset(root) {
+    root.querySelectorAll('[data-split]').forEach(function (g) {
+      if (g.__orig) g.parentNode.replaceChild(g.__orig, g);
+    });
+    var els = root.querySelectorAll('[data-anim], [data-anim] *');
+    gsap.killTweensOf(els);
+    gsap.set(els, { clearProps: 'transform,opacity,visibility,fill,stroke' });
+    root.querySelectorAll('[data-draw-clip]').forEach(function (cp) { cp.parentNode.removeChild(cp); });
+    root.querySelectorAll('[data-draw-clipped]').forEach(function (el) {
+      var prev = el.getAttribute('data-draw-clipped');
+      if (prev) el.setAttribute('clip-path', prev); else el.removeAttribute('clip-path');
+      el.removeAttribute('data-draw-clipped');
+    });
+    root.querySelectorAll('[data-travel]').forEach(function (c) {
+      c.setAttribute('cx', c.getAttribute('data-cx'));
+      c.setAttribute('cy', c.getAttribute('data-cy'));
+      c.removeAttribute('data-travel');
+      c.removeAttribute('data-flow-hidden');
+      c.style.opacity = '';
+    });
+  }
+
+  function sceneUnits(root, key, track) {
+    var names = String(track.targets || key).split(',').map(function (n) { return n.trim(); }).filter(Boolean);
+    var tagged = [].slice.call(root.querySelectorAll('[data-anim]'));
+    var units = [];
+    names.forEach(function (n) {
+      var els = n.slice(-1) === '*'
+        ? tagged.filter(function (el) { return el.getAttribute('data-anim').indexOf(n.slice(0, -1)) === 0; })
+        : tagged.filter(function (el) { return el.getAttribute('data-anim') === n; });
+      if (!els.length) return;
+      // a list of names staggers name by name; one name staggers element by element
+      if (names.length > 1) units.push(els);
+      else els.forEach(function (el) { units.push([el]); });
+    });
+    return units;
+  }
+
+  // Dots riding their line, forever. Targets may be one group per lane (Figma
+  // grouped them) or loose siblings — each dot is matched to the nearest path,
+  // so the connector and its dots do not have to share a parent. Each lap starts
+  // at the path's first point, which sits under the box that paints above it, and
+  // several dots on one line are spaced evenly. Hidden until the loop runs.
+  function travelLoop(units, t) {
+    var loop = gsap.timeline({ paused: true });
+    var flat = [];
+    units.forEach(function (unit) { flat = flat.concat(unit); });
+
+    var expand = function (tag) {
+      var out = [];
+      flat.forEach(function (el) {
+        if (el.tagName === tag) out.push(el);
+        [].push.apply(out, el.querySelectorAll ? [].slice.call(el.querySelectorAll(tag)) : []);
+      });
+      return out;
+    };
+
+    var lanes = expand('path').map(function (line) {
+      var len = line.getTotalLength();
+      var pts = [];
+      for (var i = 0; i <= 40; i++) pts.push(line.getPointAtLength((len * i) / 40));
+      // Figma draws each path in its own direction, so a diagram of several
+      // connectors would send its dots both ways. `towards` normalises them:
+      // every lane travels to the down / up / left / right end of its own path.
+      var flip = !!t.reverse;
+      var a = pts[0], b = pts[pts.length - 1];
+      if (t.towards === 'down') flip = a.y > b.y;
+      else if (t.towards === 'up') flip = a.y < b.y;
+      else if (t.towards === 'right') flip = a.x > b.x;
+      else if (t.towards === 'left') flip = a.x < b.x;
+      return { line: line, len: len, pts: pts, dots: [], flip: flip };
+    });
+    if (!lanes.length) return loop;
+
+    expand('circle').forEach(function (dot) {
+      if (+dot.getAttribute('r') < 2.5) return; // end caps stay put
+      var cx = +dot.getAttribute('cx'), cy = +dot.getAttribute('cy');
+      var best = null, bestD = Infinity;
+      lanes.forEach(function (lane) {
+        lane.pts.forEach(function (p) {
+          var dd = (p.x - cx) * (p.x - cx) + (p.y - cy) * (p.y - cy);
+          if (dd < bestD) { bestD = dd; best = lane; }
+        });
+      });
+      if (best) best.dots.push(dot);
+    });
+
+    lanes.forEach(function (lane, u) {
+      lane.dots.forEach(function (dot, i) {
+        dot.setAttribute('data-cx', dot.getAttribute('cx'));
+        dot.setAttribute('data-cy', dot.getAttribute('cy'));
+        dot.setAttribute('data-travel', '');
+        dot.setAttribute('data-flow-hidden', ''); // reduced motion puts it back
+        dot.style.opacity = '0';
+        var edge = t.fadeEdge != null ? t.fadeEdge : 0.12;
+        var dur = t.duration || 2.4;
+        var proxy = { p: 0 };
+        loop.to(proxy, {
+          p: 1,
+          duration: dur,
+          ease: 'none',
+          repeat: -1,
+          delay: (t.stagger || 0) * u + (dur * i) / lane.dots.length,
+          onUpdate: function () {
+            var f = proxy.p;
+            var pt = lane.line.getPointAtLength(lane.len * (lane.flip ? 1 - f : f));
+            dot.setAttribute('cx', pt.x);
+            dot.setAttribute('cy', pt.y);
+            dot.style.opacity = Math.max(0, Math.min(1, f / edge, (1 - f) / edge));
+          },
+        }, 0);
+      });
+    });
+    return loop;
+  }
+
+  // Draw a stroked path on by growing a clip over it. strokeDashoffset is the
+  // usual trick but it owns the dash pattern, so a dashed connector can only be
+  // revealed this way. `dir` is the direction the reveal travels.
+  function drawReveal(tl, el, t, d) {
+    var bb = el.getBBox();
+    var pad = 4;
+    var x = bb.x - pad, y = bb.y - pad, w = bb.width + pad * 2, h = bb.height + pad * 2;
+    var defs = el.ownerSVGElement.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS(SVGNS, 'defs');
+      el.ownerSVGElement.insertBefore(defs, el.ownerSVGElement.firstChild);
+    }
+    var cp = document.createElementNS(SVGNS, 'clipPath');
+    var id = 'hi-draw-' + Math.random().toString(36).slice(2, 8);
+    cp.setAttribute('id', id);
+    cp.setAttribute('data-draw-clip', '');
+    var rect = document.createElementNS(SVGNS, 'rect');
+    cp.appendChild(rect);
+    defs.appendChild(cp);
+    el.setAttribute('data-draw-clipped', el.getAttribute('clip-path') || '');
+    el.setAttribute('clip-path', 'url(#' + id + ')');
+
+    var dir = t.dir || 'down';
+    var from = { x: x, y: y, width: w, height: h };
+    if (dir === 'down') { from.height = 0; }
+    else if (dir === 'up') { from.height = 0; from.y = y + h; }
+    else if (dir === 'right') { from.width = 0; }
+    else if (dir === 'left') { from.width = 0; from.x = x + w; }
+    gsap.set(rect, { attr: from });
+    return tl.to(rect, {
+      attr: { x: x, y: y, width: w, height: h },
+      duration: t.duration != null ? t.duration : 0.6,
+      ease: t.ease || CONFIG.global.ease,
+      data: null,
+    }, t.at || 0);
+  }
+
+  function buildScene(name, root, d) {
+    var scene = CONFIG[name];
+    // A raw Figma export has id="…" where the built file has data-anim="…" — it
+    // would sit there static with nothing in the console.
+    if (!root.querySelector('[data-anim]')) {
+      console.warn('[hi-illustrations] "' + name + '" has no data-anim hooks — paste webflow/svg-only/' + name + '.svg, not the Figma export');
+    }
+    sceneReset(root);
+    var tl = gsap.timeline({ paused: true });
+    var loops = [];
+
+    Object.keys(scene.tracks || {}).forEach(function (key) {
+      var t = scene.tracks[key];
+      if (!t || t.enabled === false) return;
+      var units = sceneUnits(root, key, t);
+      if (!units.length) return;
+
+      if (t.preset === 'travel') { loops.push(travelLoop(units, t)); return; }
+
+      // Recolour into the artwork's own colour: Figma ships the end state (a
+      // refused prompt is already red), so the animation has to start neutral.
+      if (t.preset === 'tint') {
+        var attr = t.mode === 'stroke' ? 'stroke' : 'fill';
+        units.forEach(function (unit, i) {
+          unit.forEach(function (el) {
+            var to = el.getAttribute(attr) || window.getComputedStyle(el)[attr];
+            var a = {}, bb = { duration: t.duration != null ? t.duration : 0.4, data: key };
+            a[attr] = t.from || '#8B95AA';
+            bb[attr] = to;
+            if (t.ease) bb.ease = t.ease;
+            tl.fromTo(el, a, bb, (t.at || 0) + i * (t.stagger || 0));
+          });
+        });
+        return;
+      }
+
+      if (t.preset === 'cycle') {
+        var ring = cardCycle(units.map(function (u) { return u[0]; }), t);
+        if (ring) loops.push(ring);
+        return;
+      }
+
+      if (t.preset === 'draw') {
+        units.forEach(function (unit, i) {
+          unit.forEach(function (el) {
+            // a connector may be a bare path or a Figma group of segments — clip
+            // the group itself, so a grouped line reveals like a loose one
+            var STROKED = { path: 1, line: 1, polyline: 1, polygon: 1, circle: 1, ellipse: 1, rect: 1 };
+            if (!STROKED[el.tagName] && !el.querySelector('path, line, polyline')) return;
+            var step = { at: (t.at || 0) + i * (t.stagger || 0), duration: t.duration, ease: t.ease, dir: t.dir };
+            drawReveal(tl, el, step, d).vars.data = key;
+          });
+        });
+        return;
+      }
+
+      // text presets stagger per line / per glyph instead of per element
+      if (t.preset === 'lines' || t.preset === 'type') {
+        var pieces = [];
+        units.forEach(function (unit) {
+          unit.forEach(function (el) {
+            // a group of text runs (coloured SQL tokens) splits run by run; paths
+            // with only a couple of contours are icons and stay whole
+            var paths = el.tagName === 'path' ? [el] : [].slice.call(el.querySelectorAll('path'));
+            var text = paths.filter(function (p) { return ((p.getAttribute('d') || '').match(/[Mm]/g) || []).length >= 3; });
+            if (!text.length) { pieces.push(el); return; }
+            text.forEach(function (p) { pieces = pieces.concat(scenePieces(p, t.preset)); });
+          });
+        });
+        units = pieces.map(function (p) { return [p]; });
+      }
+
+      var dist = (t.distance != null ? t.distance : 12) * d;
+      // `data` lets the studio find each track's tweens to draw its bar
+      var vars = { duration: t.duration != null ? t.duration : CONFIG.global.duration, autoAlpha: 0, data: key };
+      if (t.ease) vars.ease = t.ease;
+      switch (t.preset) {
+        case 'from-bottom': vars.y = dist; break;
+        case 'from-top': vars.y = -dist; break;
+        case 'from-left': vars.x = -dist; break;
+        case 'from-right': vars.x = dist; break;
+        case 'pop': vars.scale = t.scale != null ? t.scale : 0.9; vars.transformOrigin = t.origin || '50% 50%'; break;
+        case 'grow-x': vars.scaleX = 0; vars.transformOrigin = t.origin || '0% 50%'; break;
+        case 'grow-y': vars.scaleY = 0; vars.transformOrigin = t.origin || '50% 0%'; break;
+        case 'lines': vars.y = (t.distance != null ? t.distance : 6) * d; break;
+        case 'type': vars.ease = 'none'; break;
+      }
+
+      units.forEach(function (unit, i) {
+        tl.from(unit, Object.assign({}, vars), (t.at || 0) + i * (t.stagger || 0));
+      });
+    });
+
+    if (loops.length) tl.__loop = loops.length === 1 ? loops[0] : multiLoop(loops);
+    return tl;
+  }
+
+  // ---------------------------------------------------------------------------
   // builders — each returns a paused timeline, optionally with .__loop attached
   // ---------------------------------------------------------------------------
 
   var BUILD = {};
+
+  Object.keys(SCENES).forEach(function (name) {
+    BUILD[name] = function (root, d) { return buildScene(name, root, d); };
+  });
 
   BUILD.integrations = function (root, d) {
     var k = CONFIG.integrations;
@@ -3641,6 +5460,18 @@ const API = (function () {
 
     destroy(); // Barba-safe: never stack a second set of triggers
 
+    // Mounts can reference a hosted SVG instead of carrying it inline
+    // (data-hi-src). Fetch and inline those first, then run init again —
+    // per-node animation and <image href> both need the SVG in the DOM.
+    var args = arguments;
+    var pending = [].filter.call(mounts, function (m) {
+      return m.hasAttribute('data-hi-src') && !m.querySelector('svg');
+    });
+    if (pending.length) {
+      hydrate(pending).then(function () { init.apply(null, args); });
+      return;
+    }
+
     var g = CONFIG.global;
     mm = gsap.matchMedia();
 
@@ -3660,6 +5491,33 @@ const API = (function () {
         });
       }
     );
+  }
+
+  function hydrate(mounts) {
+    return Promise.all([].map.call(mounts, function (m) {
+      if (m.__hiHydrating) return m.__hiHydrating;
+      m.__hiHydrating = fetch(m.getAttribute('data-hi-src'))
+        .then(function (r) {
+          if (!r.ok) throw new Error(r.status);
+          return r.text();
+        })
+        .then(function (text) {
+          if (m.querySelector('svg')) return; // someone else got there first
+          m.innerHTML = text.replace(/<\?xml[\s\S]*?\?>|<!--[\s\S]*?-->/g, '');
+          var svg = m.querySelector('svg');
+          if (svg) {
+            svg.setAttribute('width', '100%');
+            svg.removeAttribute('height');
+            svg.style.display = 'block';
+            svg.style.height = 'auto';
+          }
+        })
+        .catch(function (e) {
+          console.warn('[hi-illustrations] could not load ' + m.getAttribute('data-hi-src') + ' (' + e.message + ')');
+          m.setAttribute('data-hi-src-failed', '');
+        });
+      return m.__hiHydrating;
+    }));
   }
 
   function destroy() {
@@ -3739,6 +5597,12 @@ const API = (function () {
     replay: replay,
     rebuild: rebuild,
     timelines: timelines,
+    // studio.html
+    scenes: SCENES,
+    presets: PRESETS,
+    buildScene: buildScene,
+    sceneUnits: sceneUnits,
+    sceneReset: sceneReset,
   };
 
   return { init: init, destroy: destroy };
