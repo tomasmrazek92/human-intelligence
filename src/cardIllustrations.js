@@ -2430,7 +2430,8 @@ const API = (function () {
     randomGap: [1.2, 4.5], // seconds between a source's firings, picked per firing
     shots: 6, // firings per source before its loop repeats
   });
-  CONFIG.consistent.count = { enabled: true, step: [1, 3], duration: 0.9 };
+  CONFIG.consistent.count = { enabled: true, start: [40, 900], step: [1, 3], duration: 0.9 }; // start: each row's random first value
+  CONFIG['consistent-mobile'] = CONFIG.consistent;
 
   // ===========================================================================
   // setup
@@ -4695,7 +4696,8 @@ const API = (function () {
       var group = null, brackets = [];
       for (var i = 0; i < wrap.children.length; i++) {
         var kid = wrap.children[i];
-        if (kid.tagName === 'path') brackets.push(kid);
+        // only the dashed connectors — a flat export leaves the row's label as a loose path too
+        if (kid.tagName === 'path' && kid.getAttribute('stroke-dasharray')) brackets.push(kid);
         else if (kid.tagName === 'g' && !group) group = kid;
       }
       var dots = group
@@ -4893,29 +4895,26 @@ const API = (function () {
     var loops = [];
     var f = k.flow;
 
-    // Row totals (consistent): each row reads a live <text data-anim="count">.
-    // One shared total grows by a random step on every landing, and the row that
-    // received the packet counts up to it.
+    // Row totals (consistent): each row reads a live <text data-anim="count">,
+    // starts from its own random number and ticks up by a random step every
+    // time a packet lands on it.
     var count = k.count && k.count.enabled ? k.count : null;
-    var total = 0;
+    var pick = function (r) { return r[0] + Math.floor(Math.random() * (r[1] - r[0] + 1)); };
+    var fmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
     rows.forEach(function (r) {
-      r.count = r.wrap.querySelector('[data-anim="count"]');
+      r.count = count && r.wrap.querySelector('[data-anim="count"]');
       if (!r.count) return;
-      r.base = r.count.getAttribute('data-count') || r.count.textContent;
-      r.count.setAttribute('data-count', r.base); // a rebuild starts from the artwork's value
-      r.count.textContent = r.base;
-      r.value = parseInt(r.base.replace(/[^\d]/g, ''), 10) || 0;
-      total = Math.max(total, r.value);
+      r.value = pick(count.start);
+      r.count.textContent = fmt(r.value);
     });
     var bump = function (r) {
-      total += count.step[0] + Math.floor(Math.random() * (count.step[1] - count.step[0] + 1));
       var from = { v: r.value };
-      r.value = total;
+      r.value += pick(count.step);
       gsap.to(from, {
-        v: total,
+        v: r.value,
         duration: count.duration,
         ease: 'power2.out',
-        onUpdate: function () { r.count.textContent = Math.round(from.v).toLocaleString('en-US'); },
+        onUpdate: function () { r.count.textContent = fmt(from.v); },
       });
     };
     if (f.enabled && apps.length) {
@@ -5075,6 +5074,8 @@ const API = (function () {
   }; }
   BUILD['warehouse-models'] = buildModels('warehouse-models');
   BUILD.consistent = buildModels('consistent');
+  // the ≤767 artwork, restacked — same builder and config, geometry read off the file
+  BUILD['consistent-mobile'] = BUILD.consistent;
 
   // ---------------------------------------------------------------------------
   // profile-match — a rotating deck of app cards feeding one profile
