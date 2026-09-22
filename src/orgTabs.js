@@ -39,6 +39,10 @@ export const CONFIG = {
     activeClass: 'is-active',
   },
 
+  nav: 0.55, // seconds the mobile tab track takes to bring the active tab in
+  swipe: 0.05, // fraction of a tab's width that counts as a swipe
+  swipeMin: 16, // …but never less than this many px
+  flick: 0.25, // px/ms — a fast flick switches whatever the distance
   dwell: 5, // seconds a state holds before autoplay advances
   move: 0.9, // travel time between states
   tint: 0.55, // colour crossfade
@@ -162,6 +166,168 @@ export function initOrgTabs(scope) {
       });
     }
 
+    // Under 479 the tabs sit side by side in a track wider than the screen, so
+    // the active one has to travel into view — and be draggable. Measured with
+    // rects, not offsetLeft: offsetLeft is relative to the offset PARENT, which
+    // is not the track unless the track happens to be positioned, and that is
+    // what put the active tab half off screen.
+    const host = tabs[0].parentElement;
+    const nativeScroll = () => /auto|scroll/.test(getComputedStyle(host).overflowX);
+    const currentX = () => gsap.getProperty(tabs[0], 'x') || 0;
+
+    // Layout metrics, NOT rects or scrollWidth: a transform on the tabs changes
+    // both, so measuring them while translating made the clamp chase its own
+    // tail and park the active tab half off screen. offsetLeft/offsetWidth are
+    // pre-transform, and every tab shares an offset parent, so differences hold.
+    function metrics() {
+      const style = getComputedStyle(host);
+      const padL = parseFloat(style.paddingLeft) || 0;
+      const padR = parseFloat(style.paddingRight) || 0;
+      const first = tabs[0];
+      const last = tabs[tabs.length - 1];
+      const trackWidth = last.offsetLeft + last.offsetWidth - first.offsetLeft;
+      const viewport = host.clientWidth - padL - padR;
+      return { trackWidth, viewport, minX: Math.min(0, viewport - trackWidth) };
+    }
+
+    const overflows = () => {
+      const m = metrics();
+      return m.trackWidth > m.viewport + 4;
+    };
+
+    // how far the track must move for tab i to sit at the viewport's left edge
+    function targetX(i) {
+      const m = metrics();
+      return Math.max(m.minX, Math.min(0, -(tabs[i].offsetLeft - tabs[0].offsetLeft)));
+    }
+
+    function positionNav(instant) {
+      if (!host) return;
+      const d = instant || reduced ? 0 : 1;
+
+      if (!overflows()) {
+        gsap.to(tabs, { x: 0, duration: CONFIG.nav * d, ease: CONFIG.ease });
+        if (host.scrollLeft) host.scrollLeft = 0;
+        return;
+      }
+
+      if (nativeScroll()) {
+        const proxy = { v: host.scrollLeft };
+        gsap.to(proxy, {
+          v: tabs[index].offsetLeft - tabs[0].offsetLeft,
+          duration: CONFIG.nav * d,
+          ease: CONFIG.ease,
+          onUpdate: () => {
+            host.scrollLeft = proxy.v;
+          },
+        });
+        return;
+      }
+
+      // clicking a tab makes the browser scroll its overflow to reveal focus,
+      // which fights the translate — keep the container pinned at 0
+      gsap.to(tabs, {
+        x: targetX(index),
+        duration: CONFIG.nav * d,
+        ease: CONFIG.ease,
+        onUpdate: () => {
+          if (host.scrollLeft) host.scrollLeft = 0;
+        },
+      });
+      if (host.scrollLeft) host.scrollLeft = 0;
+    }
+
+    // Drag / swipe. Only when the track actually overflows and we own the
+    // translate; a native scroll container already drags itself.
+    let drag = null;
+    // which tab the track has been dragged closest to, in layout terms
+    function nearestTab() {
+      const x = currentX();
+      let best = index;
+      let bestD = Infinity;
+      tabs.forEach((tab, i) => {
+        const d = Math.abs(-(tab.offsetLeft - tabs[0].offsetLeft) - x);
+        if (d < bestD) {
+          bestD = d;
+          best = i;
+        }
+      });
+      return best;
+    }
+
+    function onDown(e) {
+      if (!overflows() || nativeScroll() || e.button > 0) return;
+      drag = {
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        from: currentX(),
+        moved: false,
+        last: e.clientX,
+        time: performance.now(),
+        velocity: 0,
+      };
+      gsap.killTweensOf(tabs);
+      gsap.killTweensOf(fills); // the dwell pauses while a finger is down
+    }
+
+    function onMove(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      if (!drag.moved) {
+        if (Math.abs(dx) < 6 || Math.abs(e.clientY - drag.y) > Math.abs(dx)) return; // let vertical scroll win
+        drag.moved = true;
+        host.setPointerCapture(e.pointerId);
+      }
+      // a little resistance past the ends, so the track feels bounded
+      const now = performance.now();
+      const dt = now - drag.time;
+      if (dt > 0) drag.velocity = (e.clientX - drag.last) / dt;
+      drag.last = e.clientX;
+      drag.time = now;
+
+      const bound = metrics().minX;
+      let x = drag.from + dx;
+      if (x > 0) x *= 0.35;
+      else if (x < bound) x = bound + (x - bound) * 0.35;
+      gsap.set(tabs, { x });
+    }
+
+    function onUp(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      const moved = drag.moved;
+      const travelled = e.clientX - drag.x;
+      const velocity = drag.velocity;
+      drag = null;
+      if (!moved) return runFill(); // a tap, handled by the click listener
+
+      // A short drag should still change tab: nearest-tab alone means dragging
+      // more than half a tab before anything happens, which reads as stuck.
+      const step = tabs.length > 1 ? tabs[1].offsetLeft - tabs[0].offsetLeft : tabs[0].offsetWidth;
+      const threshold = Math.max(CONFIG.swipeMin, step * CONFIG.swipe);
+      const flicked = Math.abs(velocity) > CONFIG.flick;
+      let next;
+      if (Math.abs(travelled) > threshold || flicked) {
+        next = index + (travelled < 0 ? 1 : -1);
+        next = Math.max(0, Math.min(tabs.length - 1, next));
+      } else {
+        next = nearestTab();
+      }
+      if (next !== index) show(next);
+      else {
+        positionNav();
+        runFill();
+      }
+    }
+
+    if (host) {
+      host.addEventListener('pointerdown', onDown);
+      host.addEventListener('pointermove', onMove);
+      host.addEventListener('pointerup', onUp);
+      host.addEventListener('pointercancel', onUp);
+      host.style.touchAction = 'pan-y'; // horizontal gestures are ours
+    }
+
     function show(next, instant) {
       index = next;
       tabs.forEach((t, i) => {
@@ -169,6 +335,7 @@ export function initOrgTabs(scope) {
         t.setAttribute('aria-pressed', String(i === index));
       });
       apply(index === 1, instant);
+      positionNav(instant);
       runFill();
     }
 
@@ -188,7 +355,7 @@ export function initOrgTabs(scope) {
 
     tabs.forEach((tab, i) =>
       tab.addEventListener('click', () => {
-        if (i === index) return;
+        if (i === index || (drag && drag.moved)) return;
         show(i);
       })
     );
@@ -206,11 +373,28 @@ export function initOrgTabs(scope) {
     );
     io.observe(mount);
 
+    // width-only: mobile scroll fires resize, and the track may start fitting
+    let lastWidth = window.innerWidth;
+    const onResize = () => {
+      if (window.innerWidth === lastWidth) return;
+      lastWidth = window.innerWidth;
+      positionNav(true);
+    };
+    window.addEventListener('resize', onResize);
+
     show(0, true);
 
     mount.__orgTabs = {
       destroy() {
         io.disconnect();
+        window.removeEventListener('resize', onResize);
+        if (host) {
+          host.removeEventListener('pointerdown', onDown);
+          host.removeEventListener('pointermove', onMove);
+          host.removeEventListener('pointerup', onUp);
+          host.removeEventListener('pointercancel', onUp);
+        }
+        gsap.set(tabs, { clearProps: 'x' });
         clearTimeout(timer);
         if (tl) tl.kill();
         marching.forEach((t) => t.kill());

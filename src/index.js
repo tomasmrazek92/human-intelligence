@@ -12,6 +12,7 @@ import { initAuditTabs } from './auditTabs';
 import { initIntegrationsControl } from './integrationsControl';
 import { initOrgGraph } from './orgGraph';
 import { initOrgTabs } from './orgTabs';
+import { initPersonaSlider } from './personaSlider';
 import {
   revealDotGrid,
   revealChatBox,
@@ -533,6 +534,7 @@ function initVisuals(nextPage) {
   if (has('[data-tab-active]')) initIntegrationsControl(scope);
   if (has('[data-hi-org-graph]')) initOrgGraph(scope);
   if (has('[data-hi-org-tabs]')) initOrgTabs(scope);
+  if (has('[data-hi-persona-slider]')) initPersonaSlider(scope);
 
   // Interactions
   if (has('[data-accordion-css-init]')) initAccordionCSS(scope);

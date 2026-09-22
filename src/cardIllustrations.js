@@ -2207,9 +2207,230 @@ const API = (function () {
           "scale": 0.9
         }
       }
+    },
+    "org-hero": {
+      "timeScale": 1,
+      "tracks": {
+        "pattern": {
+          "preset": "fade",
+          "at": 0,
+          "duration": 0.8
+        },
+        "card": {
+          "preset": "pop",
+          "at": 0.1,
+          "duration": 0.55,
+          "scale": 0.96
+        },
+        "avatar": {
+          "preset": "pop",
+          "at": 0.30000000000000004,
+          "duration": 0.45,
+          "scale": 0.6
+        },
+        "person": {
+          "preset": "from-left",
+          "at": 0.3,
+          "duration": 0.45,
+          "distance": 6
+        },
+        "window": {
+          "preset": "from-bottom",
+          "at": 0.3,
+          "duration": 0.8,
+          "distance": 20
+        },
+        "logo": {
+          "preset": "pop",
+          "at": 0.3,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav": {
+          "preset": "from-left",
+          "at": 0.35,
+          "duration": 0.45,
+          "stagger": 0.05,
+          "distance": 6
+        },
+        "bubble": {
+          "preset": "pop",
+          "at": 0.45,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt": {
+          "preset": "type",
+          "at": 0.55,
+          "duration": 0.05,
+          "stagger": 0.015
+        },
+        "status": {
+          "preset": "fade",
+          "at": 0.85,
+          "duration": 0.4
+        },
+        "answer": {
+          "preset": "lines",
+          "at": 1.1,
+          "duration": 0.55,
+          "stagger": 0.12,
+          "distance": 6
+        },
+        "card_2": {
+          "preset": "pop",
+          "at": 1.7,
+          "duration": 0.55,
+          "scale": 0.96
+        },
+        "avatar_2": {
+          "preset": "pop",
+          "at": 1.75,
+          "duration": 0.45,
+          "scale": 0.6
+        },
+        "person_2": {
+          "preset": "from-left",
+          "at": 1.75,
+          "duration": 0.45,
+          "distance": 6
+        },
+        "window_2": {
+          "preset": "from-bottom",
+          "at": 1.75,
+          "duration": 0.8,
+          "distance": 28
+        },
+        "logo_2": {
+          "preset": "pop",
+          "at": 1.75,
+          "duration": 0.5,
+          "scale": 0.6
+        },
+        "nav_2": {
+          "preset": "from-left",
+          "at": 1.75,
+          "duration": 0.45,
+          "stagger": 0.05,
+          "distance": 6
+        },
+        "bubble_2": {
+          "preset": "pop",
+          "at": 1.75,
+          "duration": 0.5,
+          "scale": 0.94,
+          "origin": "100% 50%"
+        },
+        "prompt_2": {
+          "preset": "type",
+          "at": 1.75,
+          "duration": 0.05,
+          "stagger": 0.015
+        },
+        "status_2": {
+          "preset": "fade",
+          "at": 2.05,
+          "duration": 0.4
+        },
+        "answer_2": {
+          "preset": "lines",
+          "at": 2.25,
+          "duration": 0.55,
+          "stagger": 0.12,
+          "distance": 6
+        }
+      }
+    },
+    "org-code": {
+      "timeScale": 1,
+      "tracks": {
+        "dots": {
+          "preset": "fade",
+          "at": 0,
+          "duration": 0.8
+        },
+        "code": {
+          "preset": "from-bottom",
+          "at": 0.1,
+          "duration": 0.7,
+          "distance": 16
+        },
+        "code-head": {
+          "preset": "fade",
+          "at": 0.4,
+          "duration": 0.4
+        },
+        "code-line": {
+          "preset": "from-left",
+          "at": 0.5,
+          "duration": 0.4,
+          "stagger": 0.12,
+          "distance": 6
+        },
+        "line-no": {
+          "preset": "fade",
+          "at": 0.75,
+          "duration": 0.3,
+          "stagger": 0.08
+        },
+        "card": {
+          "preset": "from-top",
+          "at": 1.1,
+          "duration": 0.6,
+          "distance": 16
+        },
+        "avatar": {
+          "preset": "pop",
+          "at": 1.3,
+          "duration": 0.45,
+          "scale": 0.6
+        },
+        "person": {
+          "preset": "from-left",
+          "at": 1.35,
+          "duration": 0.45,
+          "distance": 6
+        },
+        "highlight": {
+          "preset": "grow-x",
+          "at": 1.75,
+          "duration": 0.5,
+          "stagger": 0.25,
+          "origin": "0% 50%"
+        },
+        "inject": {
+          "preset": "draw",
+          "at": 1.85,
+          "duration": 0.6,
+          "stagger": 0.25,
+          "dir": "right"
+        },
+        "inject-note": {
+          "preset": "from-right",
+          "at": 2.3,
+          "duration": 0.4,
+          "stagger": 0.25,
+          "distance": 8
+        }
+      }
     }
   }/*SCENES:END*/;
   for (var sceneKey in SCENES) CONFIG[sceneKey] = SCENES[sceneKey];
+  // consistent reuses warehouse-models' layout and timing; own copy so either can be tuned alone
+  CONFIG.consistent = JSON.parse(JSON.stringify(CONFIG['warehouse-models']));
+  // ...except the flow: every source on its own random clock, so several packets
+  // are in the air at once, travelling slower and softer; and the totals count up
+  Object.assign(CONFIG.consistent.flow, {
+    mode: 'random', // 'random' | 'sequence' (warehouse-models: one source at a time)
+    travel: 3.2,
+    ease: 'sine.inOut',
+    spread: 0.35,
+    hold: 0.4,
+    randomGap: [1.2, 4.5], // seconds between a source's firings, picked per firing
+    shots: 6, // firings per source before its loop repeats
+  });
+  CONFIG.consistent.count = { enabled: true, step: [1, 3], duration: 0.9 };
 
   // ===========================================================================
   // setup
@@ -4445,8 +4666,10 @@ const API = (function () {
     return best;
   }
 
-  BUILD['warehouse-models'] = function (root, d) {
-    var k = CONFIG['warehouse-models'];
+  // One builder, several artworks: every file in this layout is keyed by name
+  // (`<key>-part` sources, `row-wrap` rows, `main-bg`, `head`, `label`).
+  function buildModels(name) { return function (root, d) {
+    var k = CONFIG[name];
     var tl = gsap.timeline({ paused: true });
 
     var panel = one(root, 'main-bg');
@@ -4669,6 +4892,32 @@ const API = (function () {
     // are lit together — that pairing is the whole illustration.
     var loops = [];
     var f = k.flow;
+
+    // Row totals (consistent): each row reads a live <text data-anim="count">.
+    // One shared total grows by a random step on every landing, and the row that
+    // received the packet counts up to it.
+    var count = k.count && k.count.enabled ? k.count : null;
+    var total = 0;
+    rows.forEach(function (r) {
+      r.count = r.wrap.querySelector('[data-anim="count"]');
+      if (!r.count) return;
+      r.base = r.count.getAttribute('data-count') || r.count.textContent;
+      r.count.setAttribute('data-count', r.base); // a rebuild starts from the artwork's value
+      r.count.textContent = r.base;
+      r.value = parseInt(r.base.replace(/[^\d]/g, ''), 10) || 0;
+      total = Math.max(total, r.value);
+    });
+    var bump = function (r) {
+      total += count.step[0] + Math.floor(Math.random() * (count.step[1] - count.step[0] + 1));
+      var from = { v: r.value };
+      r.value = total;
+      gsap.to(from, {
+        v: total,
+        duration: count.duration,
+        ease: 'power2.out',
+        onUpdate: function () { r.count.textContent = Math.round(from.v).toLocaleString('en-US'); },
+      });
+    };
     if (f.enabled && apps.length) {
       var order = apps;
       if (f.order && f.order.length) {
@@ -4695,10 +4944,9 @@ const API = (function () {
       }
       var reach = f.travel * landAt;
 
-      var cycle = gsap.timeline({ paused: true, repeat: -1 });
-      var cursor = 0;
-
-      order.forEach(function (a) {
+      // One firing of one source onto timeline `cycle` at `cursor`. Returns when
+      // its row has finished releasing.
+      var fire = function (cycle, a, cursor) {
         var last = cursor;
 
         // 1 · the row wakes as the packets leave — fast and springy
@@ -4789,13 +5037,34 @@ const API = (function () {
             );
           }
         }
-        cursor = release + hl.outDuration + f.gap;
-      });
+        // the row's total ticks up as the packet lands
+        if (count && a.row && a.row.count) cycle.call(bump, [a.row], arrival);
+        return release + hl.outDuration;
+      };
 
-      // GSAP trims a timeline to its last tween, which would eat the final gap
-      // and make the cycle snap straight back to source one
-      cycle.to({ pad: 0 }, { pad: 1, duration: 0.001 }, cursor);
-      loops.push(cycle);
+      if (f.mode === 'random') {
+        // Every source on its own clock: a fixed run of firings with random gaps,
+        // baked into a repeating timeline so it still loops seamlessly and scrubs.
+        // Seeded, so the checks see the same run every time.
+        var seed = 7;
+        var rnd = function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+        var span = function (r) { return r[0] + rnd() * (r[1] - r[0]); };
+        apps.forEach(function (a) {
+          var own = gsap.timeline({ paused: true, repeat: -1 });
+          var t = span(f.randomGap) * rnd(); // staggered first launch
+          for (var n = 0; n < f.shots; n++) t = fire(own, a, t) + span(f.randomGap);
+          own.to({ pad: 0 }, { pad: 1, duration: 0.001 }, t);
+          loops.push(own);
+        });
+      } else {
+        var cycle = gsap.timeline({ paused: true, repeat: -1 });
+        var cursor = 0;
+        order.forEach(function (a) { cursor = fire(cycle, a, cursor) + f.gap; });
+        // GSAP trims a timeline to its last tween, which would eat the final gap
+        // and make the cycle snap straight back to source one
+        cycle.to({ pad: 0 }, { pad: 1, duration: 0.001 }, cursor);
+        loops.push(cycle);
+      }
     }
 
     // waits for the reveal — packets arriving at rows that have not landed yet
@@ -4803,7 +5072,9 @@ const API = (function () {
     if (loops.length) tl.__loop = multiLoop(loops);
 
     return tl;
-  };
+  }; }
+  BUILD['warehouse-models'] = buildModels('warehouse-models');
+  BUILD.consistent = buildModels('consistent');
 
   // ---------------------------------------------------------------------------
   // profile-match — a rotating deck of app cards feeding one profile
