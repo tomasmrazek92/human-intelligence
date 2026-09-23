@@ -13,6 +13,7 @@ import { initIntegrationsControl } from './integrationsControl';
 import { initOrgGraph } from './orgGraph';
 import { initOrgTabs } from './orgTabs';
 import { initPersonaSlider } from './personaSlider';
+import { initNavHover } from './navHover';
 import {
   revealDotGrid,
   revealChatBox,
@@ -63,6 +64,7 @@ function initOnceFunctions() {
 
   // Runs once on first load
   $('body').attr('data-anim-loaded', 'true');
+  initNavHover(); // nav lives outside the Barba container
   resetPage(nextPage);
   initVisuals(nextPage);
 }
