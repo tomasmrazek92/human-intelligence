@@ -404,78 +404,71 @@ const API = (function () {
       breathe: { enabled: true, scale: 1.03, duration: 3.4, ease: 'sine.inOut' },
     },
 
-    // 10 · Warehouse hero -----------------------------------------------------
-    // Almost nothing here is a new mechanism: the floor is the `systems` drift,
-    // the cards and the dashed conduits are the `agents` pattern (a wipe mask
-    // for the entrance, dashoffset for the crawl), the app plate is the same
-    // tile stagger. The one genuinely new part is the warehouse itself — six
-    // plates stacked inside an 11.85σ blur and clipped by the prism mask, which
-    // is what makes the glow. They ride up and down on a slow offset wave.
+    // 10 · Warehouse hero (v2, 2026-09-23) --------------------------------------
+    // Nathan's redraw: four source plates over a glass warehouse, a stack of data
+    // cubes inside it, a lid carrying the HI mark, two loose sources plugged in
+    // from the sides. The floor and the conduits are the same mechanisms as v1
+    // (systems drift, agents wipe + crawl); the cube fill and the lid are new.
     //
-    // The story runs top-down — sources -> ingestion -> the warehouse -> the
-    // apps standing on the plate — so every `at` below is ordered that way.
-    // Flipping it to bottom-up is a config edit, not a code one.
+    // The export arrives with Figma's throwaway names (Vector_12…), so the
+    // builder finds every part by SHAPE — see BUILD['warehouse-hero'].
+    //
+    // Order (Tom, 2026-09-23, third pass): floor + base -> the cubes -> the side
+    // boxes plug in -> the WRAPPER forms around the stack (walls, HI lid + mark,
+    // the dotted lines on its edges) -> the chips and the source plates last.
+    // Every `at` below is ordered that way.
     'warehouse-hero': {
       timeScale: 1,
 
       // the floor is there from the first frame, like systems
       grid: { at: 0, duration: 1.2 },
-      // axis/reverse pick which diagonal it travels and which way along it
       gridDrift: { enabled: true, speed: 10, axis: 2, reverse: true },
 
-      // 1 · the sources land, back row first — sorted by depth, not by name,
-      // because Figma renumbers card_N on every re-export
-      cards: { at: 0.1, duration: 0.62, from: { y: -16, scale: 0.94 }, stagger: 0.11, ease: 'back.out(1.4)' },
+      // ground, not cargo — lands early
+      slab: { at: 0.2, duration: 0.8, from: { y: 12, scale: 0.985 }, ease: 'power2.out' },
 
-      // 2 · the conduits grow down out of them. Same trick as agents: the
-      // artwork's 3.17/3.17 dash pattern is left alone and a white wipe travels
-      // inside a mask, because the dashoffset slot belongs to the crawl.
-      // `from` picks the end it grows from: 'top' follows the story, 'bottom'
-      // follows the direction Figma authored the paths in.
-      lines: { at: 0.62, duration: 1.05, stagger: 0.1, ease: 'power2.inOut', wipeWidth: 8, from: 'top' },
+      // 5 · the sources rise into place last, with the chips. Each plate
+      // carries its own logo. Positive y = comes up from below.
+      plates: { at: 2.8, duration: 0.62, from: { y: 16, scale: 0.94 }, stagger: 0.11, ease: 'back.out(1.4)' },
 
-      // 3 · the warehouse — walls and lid first, so the glow has somewhere to be
-      well: { at: 1.15, duration: 0.7, from: { y: 10, scale: 0.97 }, ease: 'power2.out' },
+      // 4b · the dotted edges of the wrapper grow up with it
+      lines: { at: 2.25, duration: 0.9, stagger: 0.08, ease: 'power2.inOut', wipeWidth: 8, flow: 'up' },
 
-      // 4 · the layers rise into it. They sit inside the blur AND inside the
-      // prism mask, so the bottom of their travel is clipped — that is what
-      // makes them read as filling the well rather than sliding past it.
-      glow: { at: 1.35, duration: 0.95, from: { y: 30 }, stagger: 0.08, ease: 'power2.out' },
+      // 4 · the wrapper, drawn not slid: once the lid is there, the walls'
+      // outline draws down from its corners (both sides at once, meeting at
+      // the front bottom corner) while the glass fill fades in behind it
+      shell: { at: 2, duration: 0.7, ease: 'power2.inOut' },
 
-      logo: { at: 2, duration: 0.45, from: { scale: 0.62 }, ease: 'back.out(1.7)' },
+      // 2 · the cubes, lowest first, straight onto the base
+      cubes: { at: 0.45, duration: 0.45, from: { y: -14 }, stagger: 0.03, ease: 'back.out(1.2)' },
 
-      // 5 · the plate lands early (it is ground, not cargo); the apps stand up
-      // on it once the warehouse is lit, back to front
-      plate: { at: 0.35, duration: 0.8, from: { y: 12, scale: 0.985 }, ease: 'power2.out' },
-      apps: { at: 2.1, duration: 0.6, from: { y: 14, scale: 0.94 }, stagger: 0.09, ease: 'back.out(1.4)' },
+      // 4a · the lid (the logo plate) spawns on its own, in place, then the mark
+      lid: { at: 2.15, duration: 0.6, from: { scale: 0.9 }, ease: 'back.out(1.4)' },
+      logo: { at: 2.5, duration: 0.45, from: { scale: 0.62 }, ease: 'back.out(1.7)' },
 
-      labels: { at: 2.35, duration: 0.4, from: { y: 6, scale: 0.88 }, stagger: 0.1, ease: 'back.out(1.7)' },
+      // 3 · the side boxes slide in along their conduits, then the conduits run
+      loose: { at: 1.35, duration: 0.6, travel: 26, stagger: 0.15, ease: 'power3.out' },
+      ingest: { at: 1.6, duration: 0.8, stagger: 0.06, ease: 'power2.inOut', wipeWidth: 8 },
 
-      // ── ambient ────────────────────────────────────────────────────────────
-      // The dashes crawl from the moment it enters — the lines are masked until
-      // their wipe runs, so the motion is simply invisible until then and is
-      // already up to speed when the line appears. 'down' follows the story.
-      crawl: { enabled: true, speed: 9, direction: 'down' }, // SVG units per second
+      labels: { at: 2.9, duration: 0.4, from: { y: 6, scale: 0.88 }, stagger: 0.1, ease: 'back.out(1.7)' },
 
-      // The glow drift. `mode` is the escape hatch if the blur turns out to cost
-      // frames on a real machine:
-      //   shapes — each plate moves on its own offset, so the 11.85σ Gaussian is
-      //            re-run every frame. This is the look the artwork implies.
-      //   group  — the filtered group is transformed as one instead, so the
-      //            browser can reuse the blurred result. Cheaper; reads as one
-      //            block breathing rather than a wave through the stack.
-      //   off    — static.
-      // x/scale are what keep it from reading as a lift: the plates wander
-      // sideways and breathe, on periods that never line back up.
-      glowDrift: { mode: 'shapes', y: 5, x: 7, scale: 0.045, duration: 2.6, stagger: 0.24, ease: 'sine.inOut' },
+      // ── ambient ──────────────────────────────────────────────────────────────
+      // diagonals flow into the warehouse, verticals flow `lines.flow`; masked
+      // until their wipe runs
+      crawl: { enabled: true, speed: 9 }, // SVG units per second
+      // the dashed (not-yet-connected) source plate marches slowly
+      pendingCrawl: { enabled: true, speed: 4 },
 
-      // Every upward move — drop-in and float alike — is capped at the node's
-      // own distance from the top of the frame, minus this. The back card sits
-      // at y = 0.5, so it holds still rather than sliding out of the viewBox.
+      // "modeling": one visible cube at a time lights up in the blue the artwork
+      // already uses for its resolved cubes, then settles back
+      tint: { enabled: true, color: '#5E93ED', duration: 0.5, hold: 0.9, gap: 0.35 },
+
+      // Every upward move is capped at the node's own distance from the top of
+      // the frame, minus this. The back plate sits at y = 0.5.
       edgeGuard: 1,
 
-      cardFloat: { enabled: true, y: -7, duration: 2.4, stagger: 0.38, ease: 'sine.inOut' },
-      appFloat: { enabled: true, y: -4, duration: 3.1, stagger: 0.45, ease: 'sine.inOut' },
+      plateFloat: { enabled: true, y: -7, duration: 2.4, stagger: 0.38, ease: 'sine.inOut' },
+      looseFloat: { enabled: true, y: -4, duration: 3.1, stagger: 0.45, ease: 'sine.inOut' },
     },
 
     // 11 · Warehouse models ---------------------------------------------------
@@ -4408,230 +4401,325 @@ const API = (function () {
     var k = CONFIG['warehouse-hero'];
     var tl = gsap.timeline({ paused: true });
 
-    var wellGroup = one(root, 'highlight-part');
-    var cardsGroup = one(root, 'ai-cards');
-    if (!wellGroup || !cardsGroup) return tl;
-
-    var lid = one(root, 'Vector_20');
+    // The whole artwork sits in one top-level group; the lid is the only part
+    // with a stable Figma name inside it (the HI mark), so it anchors the rest.
     var logo = one(root, 'HI-LogoBlack');
-    var walls = [one(root, 'Vector_18'), one(root, 'Vector_19')].filter(Boolean);
-    var glowGroup = one(root, 'Group 1171275899'); // the filtered group itself
-    var glow = series(root, 'shapes', 6);
-    var plate = one(root, 'base');
-    var apps = byDepth(childrenNamed(one(root, 'apps'), 'app'));
-    var cards = byDepth(childrenNamed(cardsGroup, 'card'));
-    var labels = series(root, 'label', 2); // ingestion, then modeling
-    var grid = one(root, 'grid');
+    if (!logo) return tl;
+    var art = logo;
+    while (art.parentNode && art.parentNode !== root) art = art.parentNode;
+    if (!art.parentNode) return tl;
 
     // matchMedia reverts tweens but knows nothing about injected nodes, so every
     // breakpoint cross would otherwise stack another set of wipe masks.
     var stale = root.querySelectorAll('[data-agents-wipe]');
     for (var s = 0; s < stale.length; s++) stale[s].parentNode.removeChild(stale[s]);
 
-    // How far a node can rise before it leaves the frame. The back card sits
-    // flush against the top edge — y = 0.5 in a viewBox that starts at 0 — so an
-    // unclamped drop-in or float slides it straight out and it renders cut off.
-    // Measured, not special-cased: Figma renumbers the cards on every re-export
-    // and the next frame may be tight at a different corner.
-    var vb = (root.getAttribute('viewBox') || '0 0 487 558').split(/[\s,]+/).map(Number);
-    function headroom(el) {
-      return Math.max(0, el.getBBox().y - vb[1] - (k.edgeGuard || 0));
+    // ── sort the export by shape ────────────────────────────────────────────
+    // Figma renames every layer on re-export (Vector_12 today, Vector_14
+    // tomorrow), so nothing below depends on a name except the HI mark.
+    var grid = null, lid = null, shell = null, slab = null;
+    var lines = [], labels = [], plates = [], cubes = [], loose = [], smalls = [], bigs = [];
+    [].slice.call(art.children).forEach(function (el) {
+      var b = el.getBBox();
+      var item = { el: el, b: b, cx: b.x + b.width / 2, cy: b.y + b.height / 2, icons: [] };
+      if (el.tagName === 'path' && el.getAttribute('stroke-dasharray')) lines.push(item);
+      // a rebuild (breakpoint cross) finds the floor already wrapped by buildGridDrift
+      else if (el.__gridSrc || (el.tagName === 'path' && /url\(/.test(el.getAttribute('stroke') || '') && b.width > 400)) grid = el;
+      else if (el.contains(logo)) lid = item;
+      else if (el.tagName === 'g' && el.firstElementChild && el.firstElementChild.tagName === 'rect') labels.push(item);
+      else if (el.tagName === 'g' && Math.abs(b.width - 62) < 4 && Math.abs(b.height - 64) < 4) cubes.push(item);
+      else if (el.tagName === 'g' && b.width > 110 && b.width < 140 && b.height < 90) plates.push(item);
+      else if (b.width > 200) bigs.push(item); // the glass walls and the base slab
+      else smalls.push(item);
+    });
+    // the walls are the taller of the two
+    bigs.sort(function (a, b) { return b.b.height - a.b.height; });
+    shell = bigs[0] || null;
+    slab = bigs[1] || null;
+    if (!shell) return tl;
+
+    // Loose sources are cubes standing outside the warehouse walls.
+    var sx0 = shell.b.x, sx1 = shell.b.x + shell.b.width;
+    var scx = shell.cx, scy = shell.cy;
+    cubes = cubes.filter(function (c) {
+      var out = c.b.x < sx0 - 1 || c.b.x + c.b.width > sx1 + 1;
+      if (out) loose.push(c);
+      return !out;
+    });
+
+    // Logos and glyphs are separate layers in the export: each rides with the
+    // smallest plate or cube that contains its centre.
+    var hosts = plates.concat(cubes, loose);
+    smalls.forEach(function (s) {
+      var best = null;
+      hosts.forEach(function (h) {
+        var inside = s.cx > h.b.x && s.cx < h.b.x + h.b.width && s.cy > h.b.y && s.cy < h.b.y + h.b.height;
+        if (inside && (!best || h.b.width * h.b.height < best.b.width * best.b.height)) best = h;
+      });
+      if (best) best.icons.push(s.el);
+    });
+    function withIcons(h) { return [h.el].concat(h.icons); }
+
+    var vb = (root.getAttribute('viewBox') || '0 0 724 498').split(/[\s,]+/).map(Number);
+    function headroom(b) {
+      return Math.max(0, b.y - vb[1] - (k.edgeGuard || 0));
     }
 
     // ── the floor ───────────────────────────────────────────────────────────
-    // Same single-path lattice as systems, so the same rebuild applies: outline
-    // left standing, lattice repainted flat under a static fade mask and slid by
-    // exactly one cell, forever.
     var drift = grid && k.gridDrift.enabled ? buildGridDrift(root, grid, k.gridDrift) : null;
     if (drift) grid = drift.node;
-    if (grid) step(tl, grid, k.grid, d);
-
-    step(tl, plate, k.plate, d, { transformOrigin: 'center center' });
+    if (grid) step(tl, grid, k.grid, d, { data: 'grid' });
+    if (slab) step(tl, slab.el, k.slab, d, { transformOrigin: 'center center', data: 'slab' });
 
     // ── 1 · the sources ─────────────────────────────────────────────────────
-    // Not step(): each card's drop is capped at its own headroom, so the back
-    // one arrives on scale and fade alone rather than from outside the frame.
-    var cardLift = cards.map(function (card) {
-      return Math.min(Math.abs(k.cards.from.y * d), headroom(card));
-    });
-    cards.forEach(function (card, i) {
+    // Back row first. Plate and logo scale about the PLATE's centre, so the
+    // logo stays seated on it rather than shrinking toward its own middle.
+    plates.sort(function (a, b) { return a.b.y - b.b.y; });
+    plates.forEach(function (p, i) {
       tl.from(
-        card,
+        withIcons(p),
         {
           autoAlpha: 0,
-          y: -cardLift[i],
-          scale: k.cards.from.scale,
-          transformOrigin: 'center center',
-          duration: k.cards.duration,
-          ease: k.cards.ease,
+          // rising from below needs no clamp; dropping in is capped at headroom
+          y: k.plates.from.y > 0 ? k.plates.from.y * d : -Math.min(Math.abs(k.plates.from.y * d), headroom(p.b)),
+          scale: k.plates.from.scale,
+          svgOrigin: p.cx + ' ' + p.cy,
+          duration: k.plates.duration,
+          ease: k.plates.ease,
+          data: 'plates',
         },
-        k.cards.at + i * k.cards.stagger
+        k.plates.at + i * k.plates.stagger
       );
     });
 
     // ── 2 · the conduits ────────────────────────────────────────────────────
-    // Straight verticals, authored bottom -> top. The entrance runs a white wipe
-    // inside a mask so the artwork's own 3.17/3.17 pattern survives untouched —
-    // that slot belongs to the crawl.
-    var lines = [].slice
-      .call((one(root, 'dashed-lines') || root).querySelectorAll('path'))
-      .map(function (path) {
-        var len = path.getTotalLength();
-        if (!len) return null;
-        var a = path.getPointAtLength(0);
-        var b = path.getPointAtLength(len);
-        var startsAtBottom = a.y > b.y;
+    // A white wipe inside a mask draws each line, so the artwork's own dash
+    // pattern survives — the dashoffset slot belongs to the crawl. Verticals
+    // come down from the sources; diagonals run into the warehouse from the
+    // loose cubes, so they grow from their OUTER end.
+    function conduit(item) {
+      var path = item.el;
+      var len = path.getTotalLength();
+      if (!len) return null;
+      var a = path.getPointAtLength(0);
+      var z = path.getPointAtLength(len);
+      var vertical = Math.abs(a.x - z.x) < 1;
+      // the end the dashes flow TOWARD: up or down for a vertical (lines.flow),
+      // the warehouse for a diagonal. The wipe grows from the other end.
+      var towardStart = vertical
+        ? (k.lines.flow === 'up' ? a.y < z.y : a.y > z.y)
+        : Math.hypot(a.x - scx, a.y - scy) < Math.hypot(z.x - scx, z.y - scy);
+      var wipe = makeWipe(root, path, len, !towardStart, vertical ? k.lines.wipeWidth : k.ingest.wipeWidth);
+      wipe.path.removeAttribute('opacity'); // the clone carries the artwork's .5
+      path.setAttribute('mask', 'url(#' + wipe.id + ')');
+      return { path: path, wipe: wipe.path, vertical: vertical, towardStart: towardStart, period: dashPeriod(path, 8) };
+    }
+    var runs = lines.map(conduit).filter(Boolean);
+    var drops = runs.filter(function (r) { return r.vertical; });
+    var feeds = runs.filter(function (r) { return !r.vertical; });
 
-        // grow from the top end: that is the path's START when Figma drew it
-        // downwards, and its END when it drew it upwards
-        var fromStart = k.lines.from === 'bottom' ? startsAtBottom : !startsAtBottom;
-        var wipe = makeWipe(root, path, len, fromStart, k.lines.wipeWidth);
-        wipe.path.removeAttribute('opacity'); // the clone carries the artwork's .5
-        path.setAttribute('mask', 'url(#' + wipe.id + ')');
+    // Anything the lid fully covers in the final artwork (the top cubes, a
+    // stray glyph, three short conduits) is hidden until the lid is on — it
+    // would otherwise poke out of the stack while the lid is still missing.
+    var lidEnd = k.lid.at + k.lid.duration;
+    function underLid(b) {
+      return lid && b.y >= lid.b.y - 1 && b.y + b.height <= lid.b.y + lid.b.height + 2 &&
+        b.x >= lid.b.x - 1 && b.x + b.width <= lid.b.x + lid.b.width + 1;
+    }
+    var edgeIdx = 0;
+    drops.forEach(function (r) {
+      if (underLid(r.path.getBBox())) {
+        tl.to(r.wipe, { strokeDashoffset: 0, duration: 0.01, data: 'lid' }, lidEnd);
+        return;
+      }
+      tl.to(r.wipe, { strokeDashoffset: 0, duration: k.lines.duration, ease: k.lines.ease, data: 'lines' }, k.lines.at + edgeIdx++ * k.lines.stagger);
+    });
 
-        // travelling exactly one period of the authored dash pattern loops
-        // seamlessly. Here the pattern is set on the parent group, which
-        // dashPeriod already looks through.
-        return { path: path, wipe: wipe.path, startsAtBottom: startsAtBottom, period: dashPeriod(path, 8) };
-      })
-      .filter(Boolean);
+    // ── 3 · the warehouse: its outline draws, it does not slide ─────────────
+    // The walls' stroke is two subpaths: the top face (under the lid) and a U —
+    // left edge down, round the front bottom, right edge up. The U is revealed
+    // from BOTH ends at once, so each side draws down from a lid corner and they
+    // meet at the bottom: dasharray `a, walls - 2a, a`. The browser restarts the
+    // dash pattern at every subpath, so the same pattern also runs on the top
+    // face — invisible, the lid covers it. No DOM surgery.
+    var shellPaths = [].slice.call(shell.el.querySelectorAll('path'));
+    var edge = shellPaths.filter(function (p) { return p.getAttribute('stroke'); })[0];
+    var glass = shellPaths.filter(function (p) { return !p.getAttribute('stroke'); });
+    var parts = edge && absSubpaths(edge);
+    if (parts && parts.length > 1) {
+      var probe = document.createElementNS(SVGNS, 'path');
+      edge.parentNode.appendChild(probe);
+      var lens = parts.map(function (p) { probe.setAttribute('d', p.d); return probe.getTotalLength(); });
+      edge.parentNode.removeChild(probe);
+      var walls = lens[lens.length - 1];
+      var dashAt = function (p) {
+        var a2 = (walls / 2) * p;
+        return a2 + ' ' + Math.max(0, walls - 2 * a2) + ' ' + a2;
+      };
+      var draw = { p: 0 };
+      gsap.set(edge, { strokeDasharray: dashAt(0) });
+      tl.from(shell.el, { autoAlpha: 0, duration: 0.01, data: 'shell' }, k.shell.at);
+      tl.to(draw, {
+        p: 1,
+        duration: k.shell.duration,
+        ease: k.shell.ease,
+        data: 'shell',
+        onUpdate: function () { edge.style.strokeDasharray = dashAt(draw.p); },
+      }, k.shell.at);
+      if (glass.length) tl.from(glass, { opacity: 0, duration: k.shell.duration, ease: 'power1.out', data: 'shell' }, k.shell.at);
+    } else {
+      step(tl, shell.el, k.shell, d, { transformOrigin: 'center center', data: 'shell' });
+    }
 
-    lines.forEach(function (l, i) {
-      tl.to(
-        l.wipe,
-        { strokeDashoffset: 0, duration: k.lines.duration, ease: k.lines.ease },
-        k.lines.at + i * k.lines.stagger
+    // ── 4 · the cubes, lowest first ─────────────────────────────────────────
+    cubes.sort(function (a, b) { return b.b.y + b.b.height - (a.b.y + a.b.height) || a.b.x - b.b.x; });
+    var cubeIdx = 0;
+    cubes.forEach(function (c) {
+      if (underLid(c.b)) {
+        tl.from(withIcons(c), { autoAlpha: 0, duration: 0.01, data: 'lid' }, lidEnd);
+        return;
+      }
+      tl.from(
+        withIcons(c),
+        { autoAlpha: 0, y: k.cubes.from.y * d, duration: k.cubes.duration, ease: k.cubes.ease, data: 'cubes' },
+        k.cubes.at + cubeIdx++ * k.cubes.stagger
       );
     });
 
-    // ── 3 · the warehouse ───────────────────────────────────────────────────
-    var shell = walls.concat(lid ? [lid] : []);
-    if (shell.length) {
-      gsap.set(shell, { transformOrigin: 'center center' });
-      step(tl, shell, k.well, d);
-    }
+    // ── 5 · the lid, then the mark ──────────────────────────────────────────
+    if (lid) step(tl, lid.el, k.lid, d, { data: 'lid', transformOrigin: 'center center' });
+    gsap.set(logo, { transformOrigin: 'center center' });
+    step(tl, logo, k.logo, d, { data: 'logo' });
 
-    // 4 · the layers rise into it, bottom of the stack first
-    if (glow.length) step(tl, glow, k.glow, d);
+    // ── 6 · the side sources plug in ────────────────────────────────────────
+    // Each slides in along the isometric axis pointing away from the warehouse.
+    loose.sort(function (a, b) { return a.cx - b.cx; });
+    loose.forEach(function (c, i) {
+      var side = c.cx < scx ? -1 : 1;
+      tl.from(
+        withIcons(c),
+        {
+          autoAlpha: 0,
+          x: side * k.loose.travel * 0.866 * d,
+          y: k.loose.travel * 0.5 * d,
+          duration: k.loose.duration,
+          ease: k.loose.ease,
+          data: 'loose',
+        },
+        k.loose.at + i * k.loose.stagger
+      );
+    });
+    feeds.forEach(function (r, i) {
+      tl.to(r.wipe, { strokeDashoffset: 0, duration: k.ingest.duration, ease: k.ingest.ease, data: 'ingest' }, k.ingest.at + i * k.ingest.stagger);
+    });
 
-    if (logo) {
-      gsap.set(logo, { transformOrigin: 'center center' });
-      step(tl, logo, k.logo, d);
-    }
-
-    // ── 5 · the apps on the plate, then the chips ───────────────────────────
-    if (apps.length) {
-      gsap.set(apps, { transformOrigin: 'center center' });
-      step(tl, apps, k.apps, d);
-    }
-    if (labels.length) {
-      gsap.set(labels, { transformOrigin: 'center center' });
-      step(tl, labels, k.labels, d);
+    // ── the chips, bottom one first ─────────────────────────────────────────
+    labels.sort(function (a, b) { return b.b.y - a.b.y; });
+    var chips = labels.map(function (l) { return l.el; });
+    if (chips.length) {
+      gsap.set(chips, { transformOrigin: 'center center' });
+      step(tl, chips, k.labels, d, { data: 'labels' });
     }
 
     // ── ambient ─────────────────────────────────────────────────────────────
     var immediate = [];
     if (drift) immediate.push(drift.loop);
 
-    if (k.crawl.enabled && lines.length) {
+    // Increasing the offset walks the pattern toward the path's start, so the
+    // sign that flows toward the warehouse depends on how Figma drew each line.
+    if (k.crawl.enabled && runs.length) {
       var crawl = gsap.timeline({ paused: true, repeat: -1 });
-      lines.forEach(function (l) {
-        // increasing the offset walks the pattern back toward the path's start,
-        // so which sign runs the dashes downwards depends on how Figma drew it
-        var down = l.startsAtBottom ? l.period : -l.period;
-        gsap.set(l.path, { strokeDashoffset: 0 });
+      runs.forEach(function (r) {
+        gsap.set(r.path, { strokeDashoffset: 0 });
         crawl.to(
-          l.path,
-          {
-            strokeDashoffset: k.crawl.direction === 'down' ? down : -down,
-            duration: l.period / k.crawl.speed,
-            ease: 'none',
-          },
+          r.path,
+          { strokeDashoffset: r.towardStart ? r.period : -r.period, duration: r.period / k.crawl.speed, ease: 'none' },
           0
         );
       });
       immediate.push(crawl); // masked out until its line draws, so it can run early
     }
 
+    // the dashed plate is a source that is not connected yet — its outline marches
+    var pending = [];
+    plates.forEach(function (p) {
+      [].forEach.call(p.el.querySelectorAll('[stroke-dasharray]'), function (el) { pending.push(el); });
+    });
+    if (k.pendingCrawl.enabled && pending.length) {
+      var march = gsap.timeline({ paused: true, repeat: -1 });
+      pending.forEach(function (el) {
+        var period = dashPeriod(el, 8);
+        gsap.set(el, { strokeDashoffset: 0 });
+        march.to(el, { strokeDashoffset: -period, duration: period / k.pendingCrawl.speed, ease: 'none' }, 0);
+      });
+      immediate.push(march);
+    }
+
     if (immediate.length) tl.__loopNow = multiLoop(immediate);
 
     var loops = [];
 
-    // The glow wave. Moving the plates re-runs the blur every frame; moving the
-    // filtered group as one lets the browser reuse the blurred result. Same
-    // motion, different cost — see CONFIG.glowDrift.mode.
-    //
-    // Each plate gets its OWN timeline rather than one staggered tween, because
-    // organic means they must never line back up: the periods are deliberately
-    // non-multiples and each one starts part-way through its own cycle. Sideways
-    // travel alternates and scale breathes against it, so the glow wanders and
-    // swells inside the well instead of sliding up and down as a block.
-    var gd = k.glowDrift;
-    if (gd.mode === 'shapes' && glow.length) {
-      glow.forEach(function (shape, i) {
-        gsap.set(shape, { transformOrigin: 'center center' });
-        var swing = i % 2 ? 1 : -1; // neighbours lean opposite ways
-        var wobble = 1 + (i % 3) * 0.17; // 3 periods that never resolve to a beat
-        var span = gd.duration * wobble;
-
-        // fromTo, not to: seeding the phase below RENDERS this timeline at build
-        // time, and a .to() would record whatever the plate's y is at that
-        // moment — which is the entrance's start offset, 30 units down. The loop
-        // would then haul the whole stack back up the first time it played.
-        var t = gsap.timeline({ paused: true, repeat: -1, yoyo: true }).fromTo(
-          shape,
-          { x: 0, y: 0, scale: 1 },
-          {
-            y: -gd.y * d * (0.7 + (i % 4) * 0.15),
-            x: gd.x * d * swing * (0.6 + (i % 3) * 0.25),
-            scale: 1 + gd.scale * (i % 2 ? 1 : -1),
-            duration: span,
-            ease: gd.ease,
-          }
-        );
-        t.progress(((i * gd.stagger) % span) / span); // start part-way through
-        loops.push(t);
+    // "Modeling": one cube at a time takes the blue the artwork already uses for
+    // its resolved cubes. Only cubes the lid does not cover, and not the ones
+    // that are blue to begin with.
+    var BLUE = k.tint.color.toLowerCase();
+    var lidBottom = lid ? lid.b.y + lid.b.height : -Infinity;
+    var lit = cubes
+      .filter(function (c) { return c.cy > lidBottom - 8; })
+      .map(function (c) {
+        var paths = [].slice.call(c.el.querySelectorAll('path[stroke]'));
+        return {
+          base: paths.filter(function (p) { return !/url\(/.test(p.getAttribute('stroke')); }),
+          overlay: paths.filter(function (p) { return /url\(/.test(p.getAttribute('stroke')); }),
+        };
+      })
+      .filter(function (c) {
+        return c.base.length && c.overlay.length && c.base[0].getAttribute('stroke').toLowerCase() !== BLUE;
       });
-    } else if (gd.mode === 'group' && glowGroup) {
-      gsap.set(glowGroup, { transformOrigin: 'center center' });
-      loops.push(
-        gsap.timeline({ paused: true, repeat: -1, yoyo: true }).to(glowGroup, {
-          y: -gd.y * d,
-          x: gd.x * d * 0.5,
-          scale: 1 + gd.scale,
-          duration: gd.duration,
-          ease: gd.ease,
-        })
-      );
+    if (k.tint.enabled && lit.length > 1) {
+      var t = k.tint;
+      var wave = gsap.timeline({ paused: true, repeat: -1 });
+      var n = lit.length;
+      // a fixed shuffle: stride through the list by a step coprime with n
+      var stride = 1;
+      for (var st = Math.max(2, Math.round(n * 0.38)); st < n; st++) {
+        var g = n, h = st;
+        while (h) { var tmp = g % h; g = h; h = tmp; }
+        if (g === 1) { stride = st; break; }
+      }
+      for (var j = 0; j < n; j++) {
+        var c = lit[(j * stride) % n];
+        var at = j * (t.duration + t.gap);
+        var orig = c.base[0].getAttribute('stroke');
+        wave
+          .to(c.base, { stroke: t.color, duration: t.duration, ease: 'power1.inOut' }, at)
+          .to(c.overlay, { opacity: 0, duration: t.duration, ease: 'power1.inOut' }, at)
+          .to(c.base, { stroke: orig, duration: t.duration, ease: 'power1.inOut' }, at + t.duration + t.hold)
+          .to(c.overlay, { opacity: 1, duration: t.duration, ease: 'power1.inOut' }, at + t.duration + t.hold);
+      }
+      loops.push(wave);
     }
 
-    // Clamped like the entrance — the back card has no headroom to float into.
-    if (k.cardFloat.enabled && cards.length) {
+    // clamped like the entrance — the back plate has no headroom to float into
+    if (k.plateFloat.enabled && plates.length) {
       var float = gsap.timeline({ paused: true, repeat: -1, yoyo: true });
-      cards.forEach(function (card, i) {
-        var rise = Math.min(Math.abs(k.cardFloat.y * d), headroom(card));
+      plates.forEach(function (p, i) {
+        var rise = Math.min(Math.abs(k.plateFloat.y * d), headroom(p.b));
         if (!rise) return;
-        float.to(
-          card,
-          { y: -rise, duration: k.cardFloat.duration, ease: k.cardFloat.ease },
-          i * k.cardFloat.stagger
-        );
+        float.to(withIcons(p), { y: -rise, duration: k.plateFloat.duration, ease: k.plateFloat.ease }, i * k.plateFloat.stagger);
       });
       if (float.duration()) loops.push(float);
     }
 
-    if (k.appFloat.enabled && apps.length) {
-      loops.push(
-        gsap.timeline({ paused: true, repeat: -1, yoyo: true }).to(apps, {
-          y: k.appFloat.y * d,
-          duration: k.appFloat.duration,
-          ease: k.appFloat.ease,
-          stagger: k.appFloat.stagger,
-        })
-      );
+    if (k.looseFloat.enabled && loose.length) {
+      var bob = gsap.timeline({ paused: true, repeat: -1, yoyo: true });
+      loose.forEach(function (c, i) {
+        bob.to(withIcons(c), { y: k.looseFloat.y * d, duration: k.looseFloat.duration, ease: k.looseFloat.ease }, i * k.looseFloat.stagger);
+      });
+      loops.push(bob);
     }
 
-    // waits for the reveal — a card bobbing before it has landed reads as a slip
+    // waits for the reveal — a plate bobbing before it has landed reads as a slip
     if (loops.length) tl.__loop = multiLoop(loops);
 
     return tl;
@@ -5873,6 +5961,9 @@ const API = (function () {
     scenes: SCENES,
     presets: PRESETS,
     buildScene: buildScene,
+    // hand-coded builders driven by CONFIG — the studio's config mode
+    buildConfig: function (name, root, d) { return BUILD[name] ? BUILD[name](root, d) : null; },
+    hasBuild: function (name) { return typeof BUILD[name] === 'function'; },
     sceneUnits: sceneUnits,
     sceneReset: sceneReset,
   };
