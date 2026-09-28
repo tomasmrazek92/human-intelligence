@@ -719,11 +719,11 @@ const API = (function () {
     "agents-hero": {
       "timeScale": 1,
       "tracks": {
-        "frame": {
+        "bg": {
           "preset": "fade",
           "at": 0,
           "duration": 0.8,
-          "targets": "agents-frame, agents-border"
+          "targets": "bg"
         },
         "agents": {
           "preset": "from-bottom",
@@ -733,11 +733,24 @@ const API = (function () {
           "stagger": 0.12,
           "distance": 16
         },
+        "bracket": {
+          "preset": "fade",
+          "at": 0.45,
+          "duration": 0.5,
+          "targets": "bracket"
+        },
         "shield": {
           "preset": "pop",
           "at": 0.55,
           "duration": 0.7,
           "scale": 0.8
+        },
+        "layer": {
+          "preset": "pop",
+          "at": 0.7,
+          "duration": 0.6,
+          "targets": "layer",
+          "scale": 0.96
         },
         "lines": {
           "preset": "fade",
@@ -745,6 +758,12 @@ const API = (function () {
           "duration": 0.5,
           "targets": "line*",
           "stagger": 0.06
+        },
+        "tray": {
+          "preset": "fade",
+          "at": 0.9,
+          "duration": 0.5,
+          "targets": "tray"
         },
         "apps": {
           "preset": "pop",
@@ -754,12 +773,18 @@ const API = (function () {
           "stagger": 0.07,
           "scale": 0.85
         },
+        "label": {
+          "preset": "fade",
+          "at": 1.3,
+          "duration": 0.4,
+          "targets": "label"
+        },
         "dots": {
           "preset": "travel",
           "at": 0,
-          "duration": 2.4,
-          "targets": "line*",
-          "stagger": 0.4,
+          "duration": 2.6,
+          "targets": "route*",
+          "stagger": 0.87,
           "towards": "up"
         }
       }
@@ -796,8 +821,8 @@ const API = (function () {
         "prompt": {
           "preset": "type",
           "at": 0.7,
-          "duration": 0.01,
-          "stagger": 0.012
+          "duration": 0.014,
+          "stagger": 0.007
         },
         "status": {
           "preset": "fade",
@@ -847,10 +872,18 @@ const API = (function () {
           "stagger": 0.1,
           "distance": 6
         },
+        "sources": {
+          "preset": "pop",
+          "at": 1.2,
+          "duration": 0.45,
+          "targets": "source",
+          "stagger": 0.06,
+          "scale": 0.6
+        },
         "checks": {
           "preset": "lines",
-          "at": 0.55,
-          "duration": 0.3,
+          "at": 1.3,
+          "duration": 0.45,
           "stagger": 0.1,
           "distance": 6
         },
@@ -859,18 +892,11 @@ const API = (function () {
           "at": 1.15,
           "duration": 0.5
         },
-        "question": {
-          "preset": "lines",
-          "at": 1.6,
-          "duration": 0.45,
-          "distance": 6
-        },
         "buttons": {
           "preset": "pop",
-          "at": 1.8,
+          "at": 1.6,
           "duration": 0.45,
-          "targets": "send, pick",
-          "stagger": 0.08,
+          "targets": "send",
           "scale": 0.9
         }
       }
@@ -940,6 +966,14 @@ const API = (function () {
           "at": 1.05,
           "duration": 0.4,
           "stagger": 0.012
+        },
+        "sources": {
+          "preset": "pop",
+          "at": 1.25,
+          "duration": 0.45,
+          "targets": "source",
+          "stagger": 0.05,
+          "scale": 0.6
         },
         "status": {
           "preset": "fade",
@@ -2423,7 +2457,20 @@ const API = (function () {
     randomGap: [1.2, 4.5], // seconds between a source's firings, picked per firing
     shots: 6, // firings per source before its loop repeats
   });
-  CONFIG.consistent.count = { enabled: true, start: [40, 900], step: [1, 3], duration: 0.9 }; // start: each row's random first value
+  // Tom, 2026-09-28: the point of this piece is that every platform shows the SAME
+  // number (1,204 in the artwork) — so no counting and no loop. The flow plays
+  // once as part of the intro: each source sends one packet, its row lights and
+  // stays lit. The dash crawls stop too, so the end frame holds still.
+  Object.assign(CONFIG.consistent.flow, {
+    mode: 'once',
+    onceAt: 1.9, // as the lines finish drawing (lines 1.15 + 0.8, staggered)
+    onceStagger: 0.12,
+    travel: 1.1,
+    ease: 'power2.inOut',
+  });
+  CONFIG.consistent.count = { enabled: false };
+  CONFIG.consistent.crawl = Object.assign({}, CONFIG.consistent.crawl, { enabled: false });
+  CONFIG.consistent.highlight = Object.assign({}, CONFIG.consistent.highlight, { bracketCrawl: false });
   CONFIG['consistent-mobile'] = CONFIG.consistent;
 
   // ===========================================================================
@@ -3176,14 +3223,18 @@ const API = (function () {
     expand('circle').forEach(function (dot) {
       if (+dot.getAttribute('r') < 2.5) return; // end caps stay put
       var cx = +dot.getAttribute('cx'), cy = +dot.getAttribute('cy');
-      var best = null, bestD = Infinity;
+      var best = null, bestD = Infinity, own = null;
       lanes.forEach(function (lane) {
+        var near = Infinity;
         lane.pts.forEach(function (p) {
-          var dd = (p.x - cx) * (p.x - cx) + (p.y - cy) * (p.y - cy);
-          if (dd < bestD) { bestD = dd; best = lane; }
+          near = Math.min(near, (p.x - cx) * (p.x - cx) + (p.y - cy) * (p.y - cy));
         });
+        if (near < bestD) { bestD = near; best = lane; }
+        // routes can overlap (several packets share one trunk), so a dot that
+        // sits on the path in its OWN group rides that one, not the nearest
+        if (lane.line.parentNode === dot.parentNode && near < 64) own = lane;
       });
-      if (best) best.dots.push(dot);
+      if (own || best) (own || best).dots.push(dot);
     });
 
     lanes.forEach(function (lane, u) {
@@ -5033,7 +5084,8 @@ const API = (function () {
 
       // One firing of one source onto timeline `cycle` at `cursor`. Returns when
       // its row has finished releasing.
-      var fire = function (cycle, a, cursor) {
+      // `keep`: the row stays lit (mode 'once' — the intro ends with every row awake)
+      var fire = function (cycle, a, cursor, keep) {
         var last = cursor;
 
         // 1 · the row wakes as the packets leave — fast and springy
@@ -5105,7 +5157,7 @@ const API = (function () {
 
         // 4 · release — slower and softer than the wake, so the cycle breathes
         var release = last + f.hold;
-        if (a.row) {
+        if (a.row && !keep) {
           cycle.to(
             a.row.wrap,
             { opacity: idle, duration: hl.outDuration, ease: hl.outEase },
@@ -5129,7 +5181,13 @@ const API = (function () {
         return release + hl.outDuration;
       };
 
-      if (f.mode === 'random') {
+      if (f.mode === 'once') {
+        // Intro only (consistent): as the lines finish connecting, every source
+        // sends one packet, a short stagger apart, and its row lights and STAYS lit.
+        // Part of the entrance timeline — scrubbable, no loop, nothing after it.
+        var t0 = f.onceAt != null ? f.onceAt : k.lines.at + k.lines.duration * 0.9;
+        order.forEach(function (a, i) { fire(tl, a, t0 + i * (f.onceStagger || 0.12), true); });
+      } else if (f.mode === 'random') {
         // Every source on its own clock: a fixed run of firings with random gaps,
         // baked into a repeating timeline so it still loops seamlessly and scrubs.
         // Seeded, so the checks see the same run every time.
@@ -5760,11 +5818,13 @@ const API = (function () {
       // The shield ripple hides the real outlines and replaces them with waves.
       // With no waves running, put the artwork back rather than leaving it bare.
       svg.querySelectorAll('[data-ripple]').forEach(function (el) { el.remove(); });
-      // warehouse-models parks its travelling packets at autoAlpha 0 for the same
-      // reason — with no flow running, put them back where Figma drew them.
-      svg.querySelectorAll('[data-ripple-hidden],[data-flow-hidden],[data-flow-idle]').forEach(function (el) {
+      svg.querySelectorAll('[data-ripple-hidden],[data-flow-idle]').forEach(function (el) {
         gsap.set(el, { autoAlpha: 1 });
       });
+      // Packets ([data-flow-hidden]: travel dots, warehouse-models movers) stay
+      // hidden. A dot in a Figma export only DEMONSTRATES a moving packet — it is
+      // never artwork, so with no flow running it has no place to be (Tom, 2026-09-25).
+      svg.querySelectorAll('[data-flow-hidden]').forEach(function (el) { gsap.set(el, { autoAlpha: 0 }); });
       // profile-match idles every row and drives the accent from the deck, so with
       // no deck running the row Figma drew lit has to be repainted by hand.
       svg.querySelectorAll('[data-lit-default]').forEach(function (el) {
