@@ -2025,7 +2025,10 @@ const API = (function () {
           "targets": "card",
           "step": 2.2,
           "moveDuration": 0.7,
-          "wrapLift": 70
+          "wrapLift": 70,
+          "slotBorders": true,
+          "activeSlot": 1,
+          "activeBorderFrom": 3
         }
       }
     },
@@ -2896,6 +2899,8 @@ const API = (function () {
     var move = cfg.moveDuration != null ? cfg.moveDuration : 0.7;
     var lift = cfg.wrapLift != null ? cfg.wrapLift : 70;
     var step = cfg.step != null ? cfg.step : 2.2;
+    var paintFor = cfg.slotBorders ? slotBorders(boxes, slots, startSlot, cfg) : null;
+    if (paintFor) boxes.forEach(function (b, c) { paintFor(c, startSlot[c], null, 0); });
 
     for (var k = 1; k <= n; k++) {
       for (var c = 0; c < boxes.length; c++) {
@@ -2919,6 +2924,8 @@ const API = (function () {
         } else {
           loop.to(b.el, { x: dx, y: dy, duration: move }, at);
         }
+        // the border belongs to the slot: swap it mid-move
+        if (paintFor) paintFor(c, to, loop, at + move * 0.5);
       }
     }
 
@@ -2926,6 +2933,68 @@ const API = (function () {
     loop.to({ _: 0 }, { _: 1, duration: 0.001 }, n * step - 0.001);
 
     return loop;
+  }
+
+  // Borders that belong to the SLOT, not the card (policies-hero, Tom 2026-09-28):
+  // Figma gave each card its own border — solid, faded up, faded from the top-left
+  // corner — so as the stack cycled, the active card's border came and went with
+  // whichever card was passing through. Each slot keeps the border drawn there,
+  // except `activeSlot`, which takes slot `activeBorderFrom`'s (the top-left one).
+  // A userSpaceOnUse gradient is written in the ORIGINAL card's coordinates, so
+  // each card gets its own copy shifted into its own frame.
+  function slotBorders(boxes, slots, startSlot, cfg) {
+    var root = boxes[0].el.ownerSVGElement;
+    var defs = root && root.querySelector('defs');
+    if (!defs) return null;
+    [].forEach.call(root.querySelectorAll('[data-slot-grad]'), function (g) { g.parentNode.removeChild(g); });
+
+    var border = boxes.map(function (b) {
+      var r = b.el.querySelector('rect[stroke]');
+      if (!r) return null;
+      // remember Figma's own values once — a rebuild must not read our last swap
+      if (!r.hasAttribute('data-orig-stroke')) {
+        r.setAttribute('data-orig-stroke', r.getAttribute('stroke'));
+        r.setAttribute('data-orig-rx', r.getAttribute('rx') || '0');
+      }
+      return r;
+    });
+    if (border.some(function (r) { return !r; })) return null;
+
+    // slot -> the card Figma drew there
+    var owner = [];
+    boxes.forEach(function (b, c) { owner[startSlot[c]] = c; });
+    var look = function (slot) {
+      var src = slot === cfg.activeSlot && cfg.activeBorderFrom != null ? cfg.activeBorderFrom : slot;
+      var c = owner[src];
+      return { card: c, stroke: border[c].getAttribute('data-orig-stroke'), rx: border[c].getAttribute('data-orig-rx') };
+    };
+
+    var cache = {};
+    var paint = function (card, slot) {
+      var key = card + ':' + slot;
+      if (cache[key]) return cache[key];
+      var l = look(slot);
+      var stroke = l.stroke;
+      var m = /url\(#([^)]+)\)/.exec(stroke || '');
+      var src = m && root.querySelector('#' + m[1]);
+      if (src && l.card !== card) {
+        var g = src.cloneNode(true);
+        var id = m[1] + '-slot-' + card + '-' + slot;
+        g.setAttribute('id', id);
+        g.setAttribute('data-slot-grad', '');
+        var dx = boxes[card].x - boxes[l.card].x, dy = boxes[card].y - boxes[l.card].y;
+        g.setAttribute('gradientTransform', 'translate(' + dx + ' ' + dy + ') ' + (src.getAttribute('gradientTransform') || ''));
+        defs.appendChild(g);
+        stroke = 'url(#' + id + ')';
+      }
+      return (cache[key] = { stroke: stroke, rx: l.rx });
+    };
+
+    return function (card, slot, tl, at) {
+      var p = paint(card, slot);
+      var v = { attr: { stroke: p.stroke, rx: p.rx } };
+      if (tl) tl.set(border[card], v, at); else gsap.set(border[card], v);
+    };
   }
 
   // Every 80×80 logo tile, found by its own rect rather than by Figma's junk
