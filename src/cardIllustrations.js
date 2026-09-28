@@ -1720,7 +1720,7 @@ const API = (function () {
           "duration": 2.4,
           "targets": "connector, dot",
           "stagger": 0.35,
-          "towards": "down"
+          "towards": "up"
         }
       }
     },
